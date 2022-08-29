@@ -1,0 +1,659 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf400
+{\fonttbl\f0\fmodern\fcharset0 Courier;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue255;\red34\green139\blue34;}
+{\*\expandedcolortbl;;\csgenericrgb\c0\c0\c100000;\csgenericrgb\c13333\c54510\c13333;}
+\margl1440\margr1440\vieww19440\viewh17740\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs20 \cf2 function\cf0  [xkoutRaw, xkoutMod] = modeSpecificUpdateXk(inputType, xkPrev, xkRaw, taskParams, taskOutput, behaviorPacket)
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % xkoutRaw is destined for being fed back into the decoder. 
+\fs24 \cf0 \
+
+\fs20 \cf3 %xkoutMod ("modified") will affect the task but will not be fed back to the
+\fs24 \cf0 \
+
+\fs20 \cf3 %decoder. Things like error attenuation should happen to it so that they
+\fs24 \cf0 \
+
+\fs20 \cf3 %are not compounded by the decoder.
+\fs24 \cf0 \
+
+\fs20 \cf3  
+\fs24 \cf0 \
+
+\fs20 \cf3 % Most of these persistent variables are used for autoplay (some also for
+\fs24 \cf0 \
+
+\fs20 \cf3 % error assist). When introducing rotation DOF, I want the autoplay to do
+\fs24 \cf0 \
+
+\fs20 \cf3 % these rotations *after* the translation. So now there is an additional
+\fs24 \cf0 \
+
+\fs20 \cf3 % time endpoint (timeFinalRot) 
+\fs24 \cf0 \
+
+\fs20 \cf3 % -SDS Feb 22 2017
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 persistent\cf0  xkStart xTgt prevState timeFinal time timeFinalRot;
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20 NUM_DIMS = uint8(cursorConstants.NUM_DIMENSIONS); \cf3 % dimensionality of the task. Fixed for a given compile
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 if\cf0 (isempty(xkStart))
+\fs24 \
+
+\fs20     xkStart = xkPrev;
+\fs24 \
+
+\fs20     prevState = uint16(0); \cf3 %% was - uint16(CursorStates.STATE_INIT), this leads to conflicts;
+\fs24 \cf0 \
+
+\fs20     xTgt = double(zeros(NUM_DIMS,1)); \cf3 % vector t the target
+\fs24 \cf0 \
+
+\fs20     timeFinal = 0; \cf3 % Translation end time.
+\fs24 \cf0 \
+
+\fs20     timeFinalRot = 0; \cf3 % Rotation end time. Note that rotation starts after timeFinal + autoplayReactionTime
+\fs24 \cf0 \
+
+\fs20     time = 0; \cf3 %will be used to keep track of ti
+\fs24 \cf0 \
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % which state elements do I look to for relevant kinematics pos/vel?
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 xk2HorizontalPos = uint8( taskParams.xk2HorizontalPos );
+\fs24 \
+
+\fs20 xk2VerticalPos = uint8( taskParams.xk2VerticalPos );
+\fs24 \
+
+\fs20 xk2HorizontalVel = uint8( taskParams.xk2HorizontalVel );
+\fs24 \
+
+\fs20 xk2VerticalVel = uint8( taskParams.xk2VerticalVel );
+\fs24 \
+
+\fs20 xk2DepthPos = uint8( taskParams.xk2DepthPos );
+\fs24 \
+
+\fs20 xk2DepthVel = uint8( taskParams.xk2DepthVel );
+\fs24 \
+
+\fs20 xk2RotatePos = uint8( taskParams.xk2RotatePos );
+\fs24 \
+
+\fs20 xk2RotateVel = uint8( taskParams.xk2RotateVel );
+\fs24 \
+
+\fs20 xk2Rotate2Pos = uint8( taskParams.xk2Rotate2Pos );
+\fs24 \
+
+\fs20 xk2Rotate2Vel = uint8( taskParams.xk2Rotate2Vel );
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % DIMENSION-DEPENDENT
+\fs24 \cf0 \
+
+\fs20 \cf3  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 canBePosInds = [xk2HorizontalPos,xk2VerticalPos,xk2DepthPos,xk2RotatePos,xk2Rotate2Pos];
+\fs24 \
+
+\fs20 effectorPosInds = canBePosInds(1:NUM_DIMS);
+\fs24 \
+
+\fs20 canBeVelInds = [xk2HorizontalVel,xk2VerticalVel,xk2DepthVel,xk2RotateVel,xk2Rotate2Vel];
+\fs24 \
+
+\fs20 effectorVelInds = canBeVelInds(1:NUM_DIMS);
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % Which are translation and which are rotation dimensions?
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 if\cf0  NUM_DIMS > 3 \cf3 % might need to be updated if we add an aperture or other type of DOF later
+\fs24 \cf0 \
+
+\fs20     NUM_TRANS_DIMS = 3;
+\fs24 \
+
+\fs20     effectorTransPosInds = effectorPosInds(1:NUM_TRANS_DIMS);
+\fs24 \
+
+\fs20     effectorRotPosInds = effectorPosInds(NUM_TRANS_DIMS+1:NUM_DIMS);
+\fs24 \
+
+\fs20     effectorTransVelInds = effectorVelInds(1:NUM_TRANS_DIMS);
+\fs24 \
+
+\fs20     effectorRotVelInds = effectorVelInds(NUM_TRANS_DIMS+1:NUM_DIMS);
+\fs24 \
+
+\fs20     \cf3 % DIMENSION-DEPENDENT [only if going beyond just rotational dims)
+\fs24 \cf0 \
+
+\fs20 \cf2 else
+\fs24 \cf0 \
+
+\fs20     effectorTransPosInds = effectorPosInds;
+\fs24 \
+
+\fs20     effectorRotPosInds = [];
+\fs24 \
+
+\fs20     effectorTransVelInds = effectorVelInds;
+\fs24 \
+
+\fs20     effectorRotVelInds = [];
+\fs24 \
+
+\fs20     NUM_TRANS_DIMS = NUM_DIMS;
+\fs24 \
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % SDS October 31 2016
+\fs24 \cf0 \
+
+\fs20 \cf3 % make last element of xk 1 here. it used to happen in the specificTask,
+\fs24 \cf0 \
+
+\fs20 \cf3 % which doesn't make sense. Note that we also set this again in the
+\fs24 \cf0 \
+
+\fs20 \cf3 % decoder, which is redundant, but there it's there just in case we don't
+\fs24 \cf0 \
+
+\fs20 \cf3 % do it here, and ehre we do it so that this gets logged in
+\fs24 \cf0 \
+
+\fs20 \cf3 % stream.continuous.xk (since the decoderOutput.xk is different).
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 xkPrev(end) = 1;
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20 xkoutRaw = xkPrev;
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % Set all velocity states to zero. Assumption is that velocity  
+\fs24 \cf0 \
+
+\fs20 \cf3 % are even indices. These get filled in with modified velocities later in
+\fs24 \cf0 \
+
+\fs20 \cf3 % this block.
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 xkoutRaw(2:2:size(xkoutRaw,1)-1) = 0;
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % start by making xkoutMod equal to xkoutRaw
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 xkoutMod = xkoutRaw;
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % SDS May 2 2017: Removed logic which checks whether to stop cursor upon a
+\fs24 \cf0 \
+
+\fs20 \cf3 % click. This is because it was not taking clickHoldTime into account, such
+\fs24 \cf0 \
+
+\fs20 \cf3 % that a brief click would cause stopping. That's too sensitive.
+\fs24 \cf0 \
+
+\fs20 \cf3 % Integrating click state to determine selection or velocity zeroing will
+\fs24 \cf0 \
+
+\fs20 \cf3 % now be relegated to the specificTask.
+\fs24 \cf0 \
+
+\fs20 \cf3  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 autoacquireMoveStates = double([CursorStates.STATE_MOVE CursorStates.STATE_MOVE_CLICK CursorStates.STATE_CENTER_TARGET CursorStates.STATE_ACQUIRE CursorStates.STATE_HOVER, DecisionStates.STATE_MOVE, DecisionStates.STATE_CENTER_TARGET]); % SNF added DecisionStates.X 
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20 \cf2 switch\cf0  inputType
+\fs24 \
+
+\fs20     \cf2 case\cf0  \{cursorConstants.INPUT_TYPE_DECODE_V, cursorConstants.INPUT_TYPE_HEAD_CURSORSTILL, \cf2 ...
+\fs24 \cf0 \
+
+\fs20             cursorConstants.INPUT_TYPE_CURSOR_HEADSTILL, cursorConstants.INPUT_TYPE_CURSOR_AND_HEAD\} 
+\fs24 \
+
+\fs20         \cf3 % Neural decode -- most common use case
+\fs24 \cf0 \
+
+\fs20         \cf3 % Puts this model tick's decoder output into the velocity
+\fs24 \cf0 \
+
+\fs20         xkoutRaw(effectorVelInds) = xkRaw(effectorVelInds);
+\fs24 \
+
+\fs20         xkoutMod(effectorVelInds) = xkRaw(effectorVelInds);
+\fs24 \
+
+\fs20         
+\fs24 \
+
+\fs20         \cf3 % Nonlinear gain.
+\fs24 \cf0 \
+
+\fs20         \cf3 % applies a nonlinear power gain, which is governed by
+\fs24 \cf0 \
+
+\fs20         \cf3 % two parameters. the powerGain determines the shape
+\fs24 \cf0 \
+
+\fs20         \cf3 % of the curve (higher values have a steeper rise).
+\fs24 \cf0 \
+
+\fs20         \cf3 % The powerGainUnityCrossing defines the superlinear cross-over point
+\fs24 \cf0 \
+
+\fs20         \cf3 % after which the output equals the input. - SDS April 2017
+\fs24 \cf0 \
+
+\fs20         inSpeed = sqrt( sum(  xkoutMod(effectorVelInds).^2 ) );
+\fs24 \
+
+\fs20         inScaled =  inSpeed./ taskParams.powerGainUnityCrossing; \cf3 % speed, as a multiple of unity crossing
+\fs24 \cf0 \
+
+\fs20         outScaled = inScaled ^ taskParams.powerGain; \cf3 % how much slower/faster it got
+\fs24 \cf0 \
+
+\fs20         \cf2 if\cf0  inSpeed < eps
+\fs24 \
+
+\fs20             \cf3 % avoids nans when divide by 0 would happen
+\fs24 \cf0 \
+
+\fs20             unitNormVel =  xkoutMod(effectorVelInds);
+\fs24 \
+
+\fs20         \cf2 else
+\fs24 \cf0 \
+
+\fs20             unitNormVel =  xkoutMod(effectorVelInds) ./ inSpeed;
+\fs24 \
+
+\fs20         \cf2 end
+\fs24 \cf0 \
+
+\fs20         xkoutMod(effectorVelInds) = (outScaled*taskParams.powerGainUnityCrossing) .* unitNormVel;
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20     \cf2 case\cf0  \{cursorConstants.INPUT_TYPE_AUTO_ACQUIRE,cursorConstants.INPUT_TYPE_AUTO_ACQUIRE_HS,\cf2 ...
+\fs24 \cf0 \
+
+\fs20           cursorConstants.INPUT_TYPE_WIA_HEAD, decisionConstants.INPUT_TYPE_AUTO_ACQUIRE,\cf2 ...
+\fs24 \cf0 \
+
+\fs20           decisionConstants.INPUT_TYPE_AUTO_ACQUIRE\} \cf3 % ASSUMES CENTER OUT (AND BACK) WITH A SINGLE FIXED TGT DISTANCE
+\fs24 \cf0 \
+
+\fs20         \cf2 if\cf0 ( ((prevState ~= CursorStates.STATE_MOVE) && (taskOutput.state == CursorStates.STATE_MOVE)) \cf2 ...
+\fs24 \cf0 \
+
+\fs20                 || ((prevState ~= CursorStates.STATE_MOVE_CLICK) && (taskOutput.state == CursorStates.STATE_MOVE_CLICK)) \cf2 ...
+\fs24 \cf0 \
+
+\fs20                 || ((prevState ~= CursorStates.STATE_CENTER_TARGET) && (taskOutput.state == CursorStates.STATE_CENTER_TARGET)) \cf2 ...
+\fs24 \cf0 \
+
+\fs20                 || ((prevState ~= DecisionStates.STATE_MOVE) && (taskOutput.state == DecisionStates.STATE_MOVE))...\
+		    || ((prevState ~= DecisionStates.STATE_CENTER_TARGET) && (taskOutput.state == DecisionStates.STATE_CENTER_TARGET)))
+\fs24 \
+
+\fs20             \cf3 % game just entered one of the autoplay states, so compute
+\fs24 \cf0 \
+
+\fs20             \cf3 % the vector towards the target and how long it should take
+\fs24 \cf0 \
+
+\fs20             \cf3 % to get there.
+\fs24 \cf0 \
+
+\fs20             xkStart = xkPrev;
+\fs24 \
+
+\fs20             xTgt = double(taskOutput.currentTarget(1:NUM_DIMS)) - \cf2 ...
+\fs24 \cf0 \
+
+\fs20                 double(xkPrev(effectorPosInds));
+\fs24 \
+
+\fs20             
+\fs24 \
+
+\fs20             \cf3 % When translation ends: 1 autoplayReactionTime added
+\fs24 \cf0 \
+
+\fs20             \cf2 if\cf0  taskOutput.wiaCode==1
+\fs24 \
+
+\fs20                 speedMultiplier = 1;
+\fs24 \
+
+\fs20                 \cf2 if\cf0  taskOutput.speedCode==1
+\fs24 \
+
+\fs20                     speedMultiplier = 3;
+\fs24 \
+
+\fs20                 \cf2 elseif\cf0  taskOutput.speedCode==2
+\fs24 \
+
+\fs20                     speedMultiplier = 1.5;
+\fs24 \
+
+\fs20                 \cf2 elseif\cf0  taskOutput.speedCode==3
+\fs24 \
+
+\fs20                     speedMultiplier = 0.75;
+\fs24 \
+
+\fs20                 \cf2 end
+\fs24 \cf0 \
+
+\fs20                 timeMultiplier = speedMultiplier * log(sqrt(sum(xTgt.^2)))/6.0137;
+\fs24 \
+
+\fs20             \cf2 else
+\fs24 \cf0 \
+
+\fs20                 timeMultiplier = 1;
+\fs24 \
+
+\fs20             \cf2 end
+\fs24 \cf0 \
+
+\fs20             
+\fs24 \
+
+\fs20             timeFinal = round( timeMultiplier * double( taskParams.autoplayReactionTime + taskParams.autoplayMovementDuration ) );
+\fs24 \
+
+\fs20             
+\fs24 \
+
+\fs20             \cf3 % When rotation ends: it starts 1
+\fs24 \cf0 \
+
+\fs20             \cf3 % autoplayReactionTime *after* translation ends
+\fs24 \cf0 \
+
+\fs20             timeFinalRot = round( double( taskParams.autoplayRotationStart + taskParams.autoplayRotationDuration ) );
+\fs24 \
+
+\fs20             
+\fs24 \
+
+\fs20             time = 0;
+\fs24 \
+
+\fs20         \cf2 elseif\cf0  any(double(taskOutput.state) == autoacquireMoveStates)
+\fs24 \
+
+\fs20             \cf3 % what fraction of the translation is complete (from 0
+\fs24 \cf0 \
+
+\fs20             \cf3 % to 1):
+\fs24 \cf0 \
+
+\fs20             transStartsAt = double( taskParams.autoplayReactionTime );
+\fs24 \
+
+\fs20             tau = min( max(0, time - transStartsAt)/(timeFinal-transStartsAt), 1); \cf3 % this is what it was before I fixed this on July 12 2017 -SDS
+\fs24 \cf0 \
+
+\fs20             
+\fs24 \
+
+\fs20             \cf3 % What fraction of the rotation is complete( from 0 to
+\fs24 \cf0 \
+
+\fs20             \cf3 % 1)
+\fs24 \cf0 \
+
+\fs20             rotStartsAt = double( taskParams.autoplayRotationStart);
+\fs24 \
+
+\fs20             tauRot = min( max(0, time - rotStartsAt)/(timeFinalRot-rotStartsAt) , 1); 
+\fs24 \
+
+\fs20             
+\fs24 \
+
+\fs20             \cf3 % do this to both raw and modified. I'm not sure if we
+\fs24 \cf0 \
+
+\fs20             \cf3 % actually do anything with the raw xk during filter
+\fs24 \cf0 \
+
+\fs20             \cf3 % building but might as well keep behavior consistent
+\fs24 \cf0 \
+
+\fs20             \cf3 % with how it was before we separated xkoutRaw and
+\fs24 \cf0 \
+
+\fs20             \cf3 % xkoutMod.
+\fs24 \cf0 \
+
+\fs20             \cf3 % Old way, before breaking out translation and rotation
+\fs24 \cf0 \
+
+\fs20             \cf3 %                     xkoutRaw(effectorPosInds) = xkStart(effectorPosInds(1:NUM_DIMS)) -  xTgt(1:NUM_DIMS)* double( (15*tau^4 - 6*tau^5 - 10*tau^3) ); % 1:NUM_DIMS to handhold compiler
+\fs24 \cf0 \
+
+\fs20             \cf3 %                     xkoutRaw(effectorVelInds) = xkoutRaw(effectorPosInds) - xkPrev(effectorPosInds);
+\fs24 \cf0 \
+
+\fs20             \cf3 %                     xkoutMod(effectorPosInds) = xkoutRaw(effectorPosInds);
+\fs24 \cf0 \
+
+\fs20             \cf3 %                     xkoutMod(effectorVelInds) = xkoutRaw(effectorVelInds);
+\fs24 \cf0 \
+
+\fs20             \cf3 % TRANSLATION
+\fs24 \cf0 \
+
+\fs20             xkoutRaw(effectorTransPosInds) = xkStart(effectorTransPosInds) -  xTgt(1:NUM_TRANS_DIMS)* double( (15*tau^4 - 6*tau^5 - 10*tau^3) );
+\fs24 \
+
+\fs20             xkoutRaw(effectorTransVelInds) = xkoutRaw(effectorTransPosInds) - xkPrev(effectorTransPosInds);
+\fs24 \
+
+\fs20             xkoutMod(effectorTransPosInds) = xkoutRaw(effectorTransPosInds);
+\fs24 \
+
+\fs20             xkoutMod(effectorTransVelInds) = xkoutRaw(effectorTransVelInds);
+\fs24 \
+
+\fs20             
+\fs24 \
+
+\fs20             \cf3 % ROTATION
+\fs24 \cf0 \
+
+\fs20             xkoutRaw(effectorRotPosInds) = xkStart(effectorRotPosInds) -  xTgt(NUM_TRANS_DIMS+1:NUM_DIMS)* double( (15*tauRot^4 - 6*tauRot^5 - 10*tauRot^3) );
+\fs24 \
+
+\fs20             xkoutRaw(effectorRotVelInds) = xkoutRaw(effectorRotPosInds) - xkPrev(effectorRotPosInds);
+\fs24 \
+
+\fs20             xkoutMod(effectorRotPosInds) = xkoutRaw(effectorRotPosInds);
+\fs24 \
+
+\fs20             xkoutMod(effectorRotVelInds) = xkoutRaw(effectorRotVelInds);
+\fs24 \
+
+\fs20             
+\fs24 \
+
+\fs20             time = time + 1; \cf3 % time since this autoplay began counts up..
+\fs24 \cf0 \
+
+\fs20         \cf2 else
+\fs24 \cf0 \
+
+\fs20             xkoutRaw(effectorVelInds) = 0;
+\fs24 \
+
+\fs20             xkoutMod(effectorVelInds) = 0;
+\fs24 \
+
+\fs20         \cf2 end
+\fs24 \cf0 \
+
+\fs20         
+\fs24 \
+
+\fs20     \cf2 case\cf0  cursorConstants.INPUT_TYPE_NONE
+\fs24 \
+
+\fs20         xkoutRaw(effectorVelInds) = 0;
+\fs24 \
+
+\fs20         xkoutMod(effectorVelInds) = 0;
+\fs24 \
+
+\fs20         
+\fs24 \
+
+\fs20     \cf2 case\cf0  \{cursorConstants.INPUT_TYPE_HEAD_MOUSE, decisionConstants.INPUT_TYPE_HEAD_MOUSE\}
+\fs24 \
+
+\fs20         xkoutRaw(effectorPosInds(1)) = behaviorPacket.windowsMousePosition(1)*1080;
+\fs24 \
+
+\fs20         xkoutRaw(effectorPosInds(2)) = -behaviorPacket.windowsMousePosition(2)*1080;
+\fs24 \
+
+\fs20         
+\fs24 \
+
+\fs20         xkoutMod(effectorPosInds(1)) = behaviorPacket.windowsMousePosition(1)*1080;
+\fs24 \
+
+\fs20         xkoutMod(effectorPosInds(2)) = -behaviorPacket.windowsMousePosition(2)*1080;
+\fs24 \
+
+\fs20         
+\fs24 \
+
+\fs20         R = [cosd(taskParams.vmrTheta), -sind(taskParams.vmrTheta); sind(taskParams.vmrTheta), cosd(taskParams.vmrTheta)]; 
+\fs24 \
+
+\fs20         xkoutMod(effectorPosInds(1:2)) = R*xkoutMod(effectorPosInds(1:2));
+\fs24 \
+
+\fs20         
+\fs24 \
+
+\fs20         xkoutRaw(effectorVelInds) = 0;
+\fs24 \
+
+\fs20         xkoutMod(effectorVelInds) = 0;
+\fs24 \
+
+\fs20         
+\fs24 \
+
+\fs20     \cf2 otherwise
+\fs24 \cf0 \
+
+\fs20         xkoutRaw(effectorVelInds) = 0;
+\fs24 \
+
+\fs20         xkoutMod(effectorVelInds) = 0;
+\fs24 \
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %for autoplay
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 prevState = uint16(taskOutput.state);
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+}

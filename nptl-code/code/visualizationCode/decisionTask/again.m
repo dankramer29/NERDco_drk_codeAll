@@ -1,0 +1,3 @@
+copyCodeToViz; 
+resetVizAndSound; 
+startExpt; 

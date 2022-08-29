@@ -1,0 +1,11 @@
+
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Dasher
+Comment=
+Exec=dasher
+Icon=dasher
+Path=
+Terminal=false
+StartupNotify=false

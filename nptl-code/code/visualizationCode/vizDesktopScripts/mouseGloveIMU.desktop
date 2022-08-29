@@ -1,0 +1,12 @@
+
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Mouse Glove IMU (SWIM)
+Comment=
+Exec=xterm -e "cd /home/nptl/code/peripheralCode/usbEthernetBridge && ./runUEBwithIMU.py; read -n1"
+Icon=
+Path=
+Terminal=false
+StartupNotify=false
+GenericName=

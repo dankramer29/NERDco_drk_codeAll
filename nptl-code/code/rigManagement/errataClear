@@ -1,0 +1,9 @@
+#!/usr/bin/bash
+
+/usr/bin/rm -f /cygdrive/e/Session/Data/Filters/*
+/usr/bin/rm -f /cygdrive/e/Session/Data/Filters/Discrete/*
+/usr/bin/rm -f /cygdrive/e/Session/Documents/*
+
+
+echo "Done. Press any key to continue."
+read -n 1

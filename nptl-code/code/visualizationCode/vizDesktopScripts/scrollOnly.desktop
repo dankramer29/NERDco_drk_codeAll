@@ -1,0 +1,12 @@
+
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Scrollpoint Only
+Comment=
+Exec=xterm -e "cd /home/nptl/code/peripheralCode/usbEthernetBridge && sh runUEB-ScrollOnly.sh; read -n1"
+Icon=
+Path=
+Terminal=false
+StartupNotify=false
+GenericName=

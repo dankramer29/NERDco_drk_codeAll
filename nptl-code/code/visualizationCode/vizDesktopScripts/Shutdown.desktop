@@ -1,0 +1,11 @@
+
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Shutdown
+Comment=
+Exec=sudo poweroff now
+Icon=xfsm-shutdown
+Path=
+Terminal=true
+StartupNotify=false

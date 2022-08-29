@@ -1,0 +1,2 @@
+runMovementCueBuildScripts
+rtwbuild('movementCueEast');

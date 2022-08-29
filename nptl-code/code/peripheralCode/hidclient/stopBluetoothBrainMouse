@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo "Killing hidclient"
+sudo killall -s 9 hidclient
+sleep 1
+echo "Killing hidclient again"
+sudo killall -s 9 hidclient
+sleep 1
+echo "Killing hidclient once more for good measure"
+sudo killall -s 9 hidclient
+sleep 1
+echo "Ensuring there are no survivors"
+sudo killall -s 9 hidclient
+echo "mmm, extra crispy"
+
+sleep 3

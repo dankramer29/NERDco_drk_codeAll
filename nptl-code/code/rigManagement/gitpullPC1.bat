@@ -1,0 +1,1 @@
+start "GitPull" /D "C:\Program Files\TortoiseGit\bin\" "TortoiseGitProc.exe" "/command:pull /path:E:\Session\Software\nptlBrainGateRig\"

@@ -1,0 +1,5 @@
+xpcNICConfig = xpcNICConfigWest();
+rigHardware_buildWorkspace
+keyboardTask_buildWorkspace
+decoderSplit_buildWorkspace
+postProcessing_buildWorkspace

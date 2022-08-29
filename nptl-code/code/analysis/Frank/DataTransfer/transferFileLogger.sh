@@ -1,0 +1,1 @@
+rsync --progress -avzhe ssh fwillett@nptl2.stanford.edu:"/mnt/diskArray/backedUp/experiments/$1/$2/Data/FileLogger" "/Users/frankwillett/Data/$2/Data"

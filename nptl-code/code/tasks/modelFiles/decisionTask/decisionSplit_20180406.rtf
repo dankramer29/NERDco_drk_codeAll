@@ -1,0 +1,2537 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf400
+{\fonttbl\f0\fmodern\fcharset0 Courier;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue255;\red34\green139\blue34;\red160\green32\blue240;
+}
+{\*\expandedcolortbl;;\csgenericrgb\c0\c0\c100000;\csgenericrgb\c13333\c54510\c13333;\csgenericrgb\c62745\c12549\c94118;
+}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs20 \cf2 function\cf0  taskOutput  = decisionTaskSplit(xkRaw, xkMod, behaviorPacket, vizData, clickState, clickParameters, \cf2 ...
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     stateParameters, decisionParameters, clock, xpcTET, xkModBiasEst, taskAgnosticXk, xkAux)
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %#codegen
+\fs24 \cf0 \
+
+\fs20 \cf3 % This is the state-machine-like implementation of the decision making task.
+\fs24 \cf0 \
+
+\fs20 \cf3 % in head control, decision is reported with head movement. Otherwise,
+\fs24 \cf0 \
+
+\fs20 \cf3 % decision direction is decoded and the cursor is automatically moved to
+\fs24 \cf0 \
+
+\fs20 \cf3 % the decoded target.
+\fs24 \cf0 \
+
+\fs20 \cf3  
+\fs24 \cf0 \
+
+\fs20 \cf3 % October 31 2016: now has two state inputs, xkRaw (which gets fed back to
+\fs24 \cf0 \
+
+\fs20 \cf3 % the decoder), and xkMod. Generally should look at xkMod for task logic,
+\fs24 \cf0 \
+
+\fs20 \cf3 % but if the game needs to change a state element which ought to propogate
+\fs24 \cf0 \
+
+\fs20 \cf3 % into the decoder (for example re-seed the cursor), it should do this to
+\fs24 \cf0 \
+
+\fs20 \cf3 % both xkRaw and xkMod.
+\fs24 \cf0 \
+
+\fs20 \cf3  
+\fs24 \cf0 \
+
+\fs20 \cf3 % decisionParameters is actually taskParamsBus, which is set by
+\fs24 \cf0 \
+
+\fs20 \cf3 %  decisionTask_buildWorkspace.m.
+\fs24 \cf0 \
+
+\fs20 \cf3 %% INITIALIZE TASK OUTPUT - things to not f with
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 fileLoggerData.data = uint8(zeros(1,1400));
+\fs24 \
+
+\fs20 fileLoggerData.dataLen = uint16(0);
+\fs24 \
+
+\fs20 fileLoggerData.fileName = uint8(zeros(1,20));
+\fs24 \
+
+\fs20 fileLoggerData.send = false;
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20 fileLoggerFormat.format = uint8(zeros(1,1400));
+\fs24 \
+
+\fs20 fileLoggerFormat.formatLen = uint16(0);
+\fs24 \
+
+\fs20 fileLoggerFormat.fileName = uint8(zeros(1,20));
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20 fileLoggerFormatAndData.format = fileLoggerFormat;
+\fs24 \
+
+\fs20 fileLoggerFormatAndData.data = fileLoggerData;
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20 taskOutput.flushFiles = false;
+\fs24 \
+
+\fs20 taskOutput.sendFormat = false;
+\fs24 \
+
+\fs20 taskOutput.taskDetails = fileLoggerFormat;
+\fs24 \
+
+\fs20 taskOutput.discrete = fileLoggerFormatAndData;
+\fs24 \
+
+\fs20 taskOutput.continuous = fileLoggerFormatAndData;
+\fs24 \
+
+\fs20 taskOutput.screen = fileLoggerFormatAndData;
+\fs24 \
+
+\fs20 taskOutput.sound = fileLoggerFormatAndData;
+\fs24 \
+
+\fs20 taskOutput.asynch = fileLoggerFormatAndData;
+\fs24 \
+
+\fs20 taskOutput.ttl = double(0);
+\fs24 \
+
+\fs20 taskOutput.xk = xkRaw;
+\fs24 \
+
+\fs20 taskOutput.inputType = decisionParameters.initialInput;
+\fs24 \
+
+\fs20 taskOutput.currentTarget = single(zeros([double(xkConstants.NUM_TARGET_DIMENSIONS) 1]));
+\fs24 \
+
+\fs20 taskOutput.state = uint16(DecisionStates.STATE_INIT);
+\fs24 \
+
+\fs20 taskOutput.paused = false;
+\fs24 \
+
+\fs20 taskOutput.resetHMM = false;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% TASK DETAILS PACKET - no more effing with this
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 TASK_NAME = \cf4 'decision'\cf0 ;
+\fs24 \
+
+\fs20 VERSION_ID = single(0.01); \cf3 % Alpha - SF
+\fs24 \cf0 \
+
+\fs20 taskOutput.taskDetails = packFileLoggerTaskDetails(TASK_NAME, VERSION_ID, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'STATE_INIT'\cf0 , uint8(DecisionStates.STATE_INIT), \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'STATE_PRE_TRIAL'\cf0 , uint8(DecisionStates.STATE_PRE_TRIAL),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'STATE_FIXATE'\cf0 , uint8(DecisionStates.STATE_FIXATE),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'STATE_TARGETS_ONSET'\cf0 , uint8(DecisionStates.STATE_TARGETS_ONSET),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'STATE_TARGET_ACQUIRE'\cf0 , uint8(DecisionStates.STATE_TARGET_ACQUIRE),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'STATE_SUCCESS'\cf0 , uint8(DecisionStates.STATE_SUCCESS),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'STATE_FAIL'\cf0 , uint8(DecisionStates.STATE_FAIL),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'STATE_STIMULUS_ONSET'\cf0 , uint8(DecisionStates.STATE_STIMULUS_ONSET),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'STATE_END'\cf0 , uint8(DecisionStates.STATE_END),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'STATE_INTER_TRIAL'\cf0 , uint8(DecisionStates.STATE_INTER_TRIAL),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'INPUT_TYPE_AUTO_ACQUIRE'\cf0 , uint8(decisionConstants.INPUT_TYPE_AUTO_ACQUIRE),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'INPUT_TYPE_HEAD_MOUSE'\cf0 , uint8(decisionConstants.INPUT_TYPE_HEAD_MOUSE),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'INPUT_TYPE_NONE'\cf0 , uint8(decisionConstants.INPUT_TYPE_NONE),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'OUTPUT_TYPE_CURSOR'\cf0 , uint8(decisionConstants.OUTPUT_TYPE_CURSOR)\cf2 ...
+\fs24 \cf0 \
+
+\fs20     );
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% TASK RELATED CONSTANTS
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 NUM_DIMS = uint8(decisionConstants.NUM_DIMENSIONS); \cf3 %2D task
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % PRE_TRIAL_LENGTH = uint16(20); %ms
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 FIXATE_LENGTH = uint16(4000); \cf3 %ms
+\fs24 \cf0 \
+
+\fs20 INIT_TIME = uint32(200); \cf3 %ms?
+\fs24 \cf0 \
+
+\fs20 INIT_LENGTH = uint16(100); \cf3 %ms
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 HEAD_CURSOR_COLOR = [0; 204; 102;];
+\fs24 \
+
+\fs20 AUTOPLAY_COLOR = [255; 255; 255];
+\fs24 \
+
+\fs20 EYE_X_SCALAR = 1680;
+\fs24 \
+
+\fs20 EYE_Y_SCALAR = 1050;
+\fs24 \
+
+\fs20 HEAD_SCALAR = 1080;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %%% DM specific
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 GRID_SIZE = 15*15; 
+\fs24 \
+
+\fs20 ISOGREEN = [0 90 0];
+\fs24 \
+
+\fs20 ISORED   = [160 0 0];
+\fs24 \
+
+\fs20 COLORMAT = [ISORED; ISOGREEN];
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % trialConds: always L/D and Red first. 
+\fs24 \cf0 \
+
+\fs20 \cf3 % idx 1: 2 = L/R, 1 = U/D
+\fs24 \cf0 \
+
+\fs20 \cf3 % idx 2: color of left or down targ (depending on col 1) 2 = red, 3 = green
+\fs24 \cf0 \
+
+\fs20 \cf3 % idx 3: color of right or up targ  (depending on col 1) 2 = red, 3 = green
+\fs24 \cf0 \
+
+\fs20 \cf3 % idx 4: number of red squares (out of 225)
+\fs24 \cf0 \
+
+\fs20 \cf3 % idx 5: which target is correct. 1 = left/up, 2 = right/down
+\fs24 \cf0 \
+
+\fs20 \cf3 %indices into stimulus conditions matrix:
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 TARG_AXIS_IDX = 1;
+\fs24 \
+
+\fs20 LEFT_DN_TARG_COLOR_IDX = 2; \cf3 %subtract 1 to get index for target order. left/down always first
+\fs24 \cf0 \
+
+\fs20 RIGHT_UP_TARG_COLOR_IDX = 3; \cf3 %always the second entry
+\fs24 \cf0 \
+
+\fs20 NUM_RED_SQ_IDX = 4;
+\fs24 \
+
+\fs20 TARGET_LOC_IDX = 5;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % specifies what the values for each column mean:
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 LEFT_RIGHT_AXIS_TARGS = 2;
+\fs24 \
+
+\fs20 UP_DOWN_AXIS_TARGS = 1;
+\fs24 \
+
+\fs20 TARGET_RED = 2; \cf3 %minus 1 to get row in COLORMAT
+\fs24 \cf0 \
+
+\fs20 TARGET_GREEN = 3;  \cf3 %minus 1 to get row in COLORMAT
+\fs24 \cf0 \
+
+\fs20 LEFT_DN_TARG_S = 1;
+\fs24 \
+
+\fs20 RIGHT_UP_TARG_S = 2;
+\fs24 \
+
+\fs20 LEFT_DN_TARG_IDX = 1;
+\fs24 \
+
+\fs20 RIGHT_UP_TARG_IDX = 2;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% DEFINE PERSISTENTS
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 persistent\cf0  state vizPacket;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 persistent\cf0  lockedParameters inputType outputType;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  lastState;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  lastSoundTime;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  lastSoundState;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  cursorColors;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 persistent\cf0  pauseTriggered;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  stateTimer;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  targetRadiusTrans \cf3 % added SDS Feb 2017, this is the target radius in XYZ
+\fs24 \cf0 \
+
+\fs20 \cf2 persistent\cf0  currentTarget;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  nextTarget;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  trialNum;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  trialDelayLength;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  localAcquired localTotal  localAcqTime;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  totalTaskTime;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  centerHold;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % for head speed failing:
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 persistent\cf0  filteredHeadSpeed;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  prevHeadPos;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  lastHeadSpeedFail;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %DM-specific:
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 persistent\cf0  fixDur;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  targDur;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  trialCount;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  stimConds;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  trialConds;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  successPoints;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %defining targets:
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 persistent\cf0  targAxis;
+\fs24 \
+
+\fs20 \cf2 persistent\cf0  targColors; \cf3 %numTargs x RGB 
+\fs24 \cf0 \
+
+\fs20 \cf2 persistent\cf0  targLocs;   \cf3 %numTargs x XY
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %defining stimulus:
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 persistent\cf0  numRedSquares; 
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% update maths:
+\fs24 \cf0 \
+
+\fs20 \cf3 %mouse = behaviorPacket.mouse(1:6);
+\fs24 \cf0 \
+
+\fs20 \cf3 %glove = behaviorPacket.glove(1:5);
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 behaviorRequestClock = behaviorPacket.xpcRequestClock;
+\fs24 \
+
+\fs20 peripheralTimestamp = behaviorPacket.peripheralTimestamp(1:16);
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20 cursorPosition2 = single( nan(1,NUM_DIMS) ); \cf3 %  Can send a second cursor position.
+\fs24 \cf0 \
+
+\fs20 cursorAlpha2 = uint8(100); \cf3 % 100 to make it not visible. This is in %.
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 eyePos = behaviorPacket.windowsPC1GazePoint;
+\fs24 \
+
+\fs20 eyePos(1) = (eyePos(1)-0.5)*EYE_X_SCALAR; \cf3 % conversion from Tobii (0,0 at upper left corner) to center = (0,0)
+\fs24 \cf0 \
+
+\fs20 eyePos(2) = (eyePos(2)-0.5)*EYE_Y_SCALAR; \cf3 %
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % head tracker conversion: multiply X and Y by 1080 and flip the sign of Y
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 headPos = behaviorPacket.windowsMousePosition;
+\fs24 \
+
+\fs20 headPos(1) = headPos(1)*HEAD_SCALAR;
+\fs24 \
+
+\fs20 headPos(2) = -1*headPos(2)*HEAD_SCALAR;
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% INITIALIZE PERSISTENTS
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 if\cf0 (isempty(state))
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     state = uint16(DecisionStates.STATE_INIT);
+\fs24 \
+
+\fs20     lastState = state;
+\fs24 \
+
+\fs20     currentTarget = single(zeros([double(xkConstants.NUM_TARGET_DIMENSIONS) 1]));
+\fs24 \
+
+\fs20     nextTarget = single(zeros([double(xkConstants.NUM_TARGET_DIMENSIONS) 1]));
+\fs24 \
+
+\fs20     
+\fs24 \
+
+\fs20     vizPacket = initVizPacket;
+\fs24 \
+
+\fs20     stateTimer = uint16(0);
+\fs24 \
+
+\fs20     pauseTriggered = true;
+\fs24 \
+
+\fs20     
+\fs24 \
+
+\fs20     cursorColors = double(zeros([3 3])); \cf3 % there's a second cursor (column 2) allowed; now a third for eye cursor
+\fs24 \cf0 \
+
+\fs20     filteredHeadSpeed = single(0);
+\fs24 \
+
+\fs20     prevHeadPos = single(zeros(2,1));
+\fs24 \
+
+\fs20     
+\fs24 \
+
+\fs20     centerHold = single(zeros(2,1)); \cf3 %SNF made this up. Srsly check it, SNF.
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3     %% buffer all the parameters off the bus
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     lockedParameters = decisionParameters; \cf3 %decisionParameters are a function input
+\fs24 \cf0 \
+
+\fs20     targetRadiusTrans = double(lockedParameters.targetDiameter) / 2;
+\fs24 \
+
+\fs20     \cf3 % targetRadiusRot = double(lockedParameters.targetRotDiameter) / 2;
+\fs24 \cf0 \
+
+\fs20     
+\fs24 \
+
+\fs20     inputType = lockedParameters.initialInput;
+\fs24 \
+
+\fs20     trialNum = uint16(0);
+\fs24 \
+
+\fs20     trialDelayLength = uint16(0);
+\fs24 \
+
+\fs20     
+\fs24 \
+
+\fs20     localTotal = uint16(0);
+\fs24 \
+
+\fs20     localAcquired = uint16(0);
+\fs24 \
+
+\fs20     localAcqTime = uint16(0);
+\fs24 \
+
+\fs20     lastSoundTime = clock;
+\fs24 \
+
+\fs20     lastSoundState = uint8(DecisionStates.SOUND_STATE_IDLE);
+\fs24 \
+
+\fs20     
+\fs24 \
+
+\fs20     initialCursorPosition = single( zeros(NUM_DIMS,1) );
+\fs24 \
+
+\fs20     previousInput = inputType;
+\fs24 \
+
+\fs20     
+\fs24 \
+
+\fs20     totalTaskTime = uint32(0);
+\fs24 \
+
+\fs20     lastHeadSpeedFail = uint32(0);
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20     successPoints = uint16(0);
+\fs24 \
+
+\fs20     \cf3 %initialize stimulus conditions
+\fs24 \cf0 \
+
+\fs20     targAxis = uint16(LEFT_RIGHT_AXIS_TARGS);
+\fs24 \
+
+\fs20     trialConds = uint16(zeros(1,5));
+\fs24 \
+
+\fs20     targColors(LEFT_DN_TARG_COLOR_IDX -1,:)  = ISORED; \cf3 % if I see two red targets I know it's a problem
+\fs24 \cf0 \
+
+\fs20     targColors(RIGHT_UP_TARG_COLOR_IDX -1,:) = ISORED; \cf3 % but we at least got here
+\fs24 \cf0 \
+
+\fs20     numRedSquares = GRID_SIZE; \cf3 %if all red, again, we know we got here. 
+\fs24 \cf0 \
+
+\fs20     targLocs(LEFT_DN_TARG_COLOR_IDX -1) = [-1; -1]; \cf3 %one target in the lower left, one in upper right. Col = targ
+\fs24 \cf0 \
+
+\fs20     targLocs(RIGHT_UP_TARG_COLOR_IDX -1) = [1; 1];
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% some initialization
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 if\cf0 (clock < INIT_TIME)
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     pauseTriggered = true;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % outputType = lockedParameters.outputType; % determines what graphics engine will render this task.
+\fs24 \cf0 \
+
+\fs20 \cf3  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 outputType = decisionParameters.outputType; \cf3 % determines what graphics engine will render this task.
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3  
+\fs24 \cf0 \
+
+\fs20 \cf3 % We usually shouldn't write discrete data
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 writeDiscreteData = false;
+\fs24 \
+
+\fs20 writeContinuousData = true;
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 if\cf0 (vizData.receive && (vizData.dataLen > 0 ))
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     vizPacket = parseVizPacket(vizData.data);
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% set the cursor color
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 if\cf0  uint16(inputType) == uint16(decisionConstants.INPUT_TYPE_HEAD_MOUSE)
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     cursorColors(1:end,1) = HEAD_CURSOR_COLOR; \cf3 %head position is always green
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 else\cf0  \cf3 %NONE or BCI/Autoplay
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     cursorColors(1:end,1) = AUTOPLAY_COLOR; \cf3 % BCI control = white
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % these are default colors, individual states can overwrite if they want.
+\fs24 \cf0 \
+
+\fs20 \cf3 %%
+\fs24 \cf0 \
+
+\fs20 \cf3 % which state elements do I look to for the cursor's position? SDS July 2016
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 xk2HorizontalPos = uint8( lockedParameters.xk2HorizontalPos );
+\fs24 \
+
+\fs20 xk2VerticalPos = uint8( lockedParameters.xk2VerticalPos );
+\fs24 \
+
+\fs20 xk2HorizontalVel = uint8( lockedParameters.xk2HorizontalVel );
+\fs24 \
+
+\fs20 xk2VerticalVel = uint8( lockedParameters.xk2VerticalVel );
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % xk2DepthPos = uint8( lockedParameters.xk2DepthPos );
+\fs24 \cf0 \
+
+\fs20 \cf3 % xk2DepthVel = uint8( lockedParameters.xk2DepthVel );
+\fs24 \cf0 \
+
+\fs20 \cf3 % xk2RotatePos = uint8( lockedParameters.xk2RotatePos );
+\fs24 \cf0 \
+
+\fs20 \cf3 % xk2RotateVel = uint8( lockedParameters.xk2RotateVel );
+\fs24 \cf0 \
+
+\fs20 \cf3 % xk2Rotate2Pos = uint8( lockedParameters.xk2Rotate2Pos );
+\fs24 \cf0 \
+
+\fs20 \cf3 % xk2Rotate2Vel = uint8( lockedParameters.xk2Rotate2Vel );
+\fs24 \cf0 \
+
+\fs20 \cf3 % DIMENSION-DEPENDENT
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 TASK_DIMS = lockedParameters.numDisplayDims; \cf3 % only used for determining what kind of
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % checking to use. We still need to have everything be NUM_DIMS long or
+\fs24 \cf0 \
+
+\fs20 \cf3 % things won't compile.
+\fs24 \cf0 \
+
+\fs20 \cf3 % a stupid way to say positions/velocity in max dims:
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 canBePosInds = [xk2HorizontalPos,xk2VerticalPos,xk2DepthPos,xk2RotatePos,xk2Rotate2Pos];
+\fs24 \
+
+\fs20 canBeVelInds = [xk2HorizontalVel,xk2VerticalVel,xk2DepthVel,xk2RotateVel,xk2Rotate2Vel];
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % effectorPosInds = canBePosInds(1:NUM_DIMS);
+\fs24 \cf0 \
+
+\fs20 \cf3 % effectorVelInds = canBeVelInds(1:NUM_DIMS);
+\fs24 \cf0 \
+
+\fs20 \cf3 %canBePosInds = [xk2HorizontalPos,xk2VerticalPos];
+\fs24 \cf0 \
+
+\fs20 \cf3 %canBeVelInds = [xk2HorizontalVel,xk2VerticalVel];
+\fs24 \cf0 \
+
+\fs20 \cf3 % extract position and velocity values for task-relevant dims:
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 effectorPosInds = canBePosInds(1:NUM_DIMS);
+\fs24 \
+
+\fs20 effectorVelInds = canBeVelInds(1:NUM_DIMS);
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % xkAux = kalman'd head control
+\fs24 \cf0 \
+
+\fs20 \cf3 % xkMod = kalman'd neural control
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 displayAuxCursor = false;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 if\cf0  uint16(inputType) == uint16(decisionConstants.INPUT_TYPE_HEAD_MOUSE)
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     effectorPos = xkAux(effectorPosInds); \cf3 %Head position is the main effector
+\fs24 \cf0 \
+
+\fs20     effectorVel = xkAux(effectorVelInds);
+\fs24 \
+
+\fs20     auxEffectorPos = xkMod(effectorPosInds); \cf3 %BCI is auxilary
+\fs24 \cf0 \
+
+\fs20     \cf3 %displayAuxCursor = true; %the head cursor *is* the cursor, so no aux
+\fs24 \cf0 \
+
+\fs20     cursorColors(1:end,2) = HEAD_CURSOR_COLOR;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 elseif\cf0  uint16(inputType) == uint16(decisionConstants.INPUT_TYPE_AUTO_ACQUIRE)
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     effectorPos = xkMod(effectorPosInds); \cf3 %BCI is the main effector
+\fs24 \cf0 \
+
+\fs20     effectorVel = xkMod(effectorVelInds);
+\fs24 \
+
+\fs20     auxEffectorPos = xkAux(effectorPosInds); \cf3 %head mouse is auxEffector
+\fs24 \cf0 \
+
+\fs20     \cf3 %displayAuxCursor = true; %only show head cursor during fixation
+\fs24 \cf0 \
+
+\fs20     cursorColors(1:end,2) = AUTOPLAY_COLOR; \cf3 % BCI control
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 else\cf0  \cf3 %default to BCI and dgaf about head position
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     effectorPos = xkMod(effectorPosInds);
+\fs24 \
+
+\fs20     effectorVel = xkMod(effectorVelInds);
+\fs24 \
+
+\fs20     auxEffectorPos = zeros(NUM_DIMS,1);
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% HEAD SPEED CHECK - math only
+\fs24 \cf0 \
+
+\fs20 \cf3 %we low pass filter the 1ms head speed and can fail the trial if it is too high
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 headSpeedAlpha = single(0.96);
+\fs24 \
+
+\fs20 headSpeed = 1000*sqrt(sum((behaviorPacket.windowsMousePosition - prevHeadPos).^2));
+\fs24 \
+
+\fs20 filteredHeadSpeed = headSpeedAlpha*filteredHeadSpeed + (1-headSpeedAlpha)*headSpeed;
+\fs24 \
+
+\fs20 prevHeadPos = behaviorPacket.windowsMousePosition;
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% EYE POSITION - don't need in closed loop
+\fs24 \cf0 \
+
+\fs20 \cf3 % FW
+\fs24 \cf0 \
+
+\fs20 \cf3 % this is calculated earlier
+\fs24 \cf0 \
+
+\fs20 \cf3 % eyePos = behaviorPacket.windowsPC1GazePoint;
+\fs24 \cf0 \
+
+\fs20 \cf3 % eyePos(1) = (eyePos(1)-0.5)*1680;
+\fs24 \cf0 \
+
+\fs20 \cf3 % eyePos(2) = (eyePos(2)-0.5)*1050;
+\fs24 \cf0 \
+
+\fs20 \cf3 %
+\fs24 \cf0 \
+
+\fs20 \cf3 % cursorPosition3 = single(nan(NUM_DIMS,1));
+\fs24 \cf0 \
+
+\fs20 \cf3 % if lockedParameters.eyeMode==1
+\fs24 \cf0 \
+
+\fs20 \cf3 %     effectorPos(1:2) = eyePos;
+\fs24 \cf0 \
+
+\fs20 \cf3 %     cursorColors(1:end,1) = [255; 133; 0;];
+\fs24 \cf0 \
+
+\fs20 \cf3 % elseif lockedParameters.eyeMode==2
+\fs24 \cf0 \
+
+\fs20 \cf3 %     auxEffectorPos(1:2) = eyePos;
+\fs24 \cf0 \
+
+\fs20 \cf3 % elseif lockedParameters.eyeMode==3
+\fs24 \cf0 \
+
+\fs20 \cf3 %     cursorColors(1:end,3) = [255; 133; 0;];
+\fs24 \cf0 \
+
+\fs20 \cf3 %     cursorPosition3(1:NUM_DIMS) = 0;
+\fs24 \cf0 \
+
+\fs20 \cf3 %     cursorPosition3(1:2) = eyePos;
+\fs24 \cf0 \
+
+\fs20 \cf3 % end
+\fs24 \cf0 \
+
+\fs20 \cf3  
+\fs24 \cf0 \
+
+\fs20 \cf3 %%
+\fs24 \cf0 \
+
+\fs20 \cf3 %--the auxiliary cursor must be in the center to acquire a target with the
+\fs24 \cf0 \
+
+\fs20 \cf3 %actual cursor
+\fs24 \cf0 \
+
+\fs20 \cf3 %--in modes where the aux. cursor is not used, its position is zero, placing
+\fs24 \cf0 \
+
+\fs20 \cf3 %it in the center so it will pass all auxInCenter checks
+\fs24 \cf0 \
+
+\fs20 \cf3  
+\fs24 \cf0 \
+
+\fs20 \cf3 %display auxiliary cursor
+\fs24 \cf0 \
+
+\fs20 \cf3 % if displayAuxCursor
+\fs24 \cf0 \
+
+\fs20 \cf3 %     cursorPosition2 = single(auxEffectorPos);
+\fs24 \cf0 \
+
+\fs20 \cf3 % end
+\fs24 \cf0 \
+
+\fs20 \cf3 %
+\fs24 \cf0 \
+
+\fs20 \cf3 % % fail if head is moving too much
+\fs24 \cf0 \
+
+\fs20 \cf3 % if (filteredHeadSpeed > lockedParameters.headSpeedCap)
+\fs24 \cf0 \
+
+\fs20 \cf3 %     &&((clock - lastHeadSpeedFail)>2000)
+\fs24 \cf0 \
+
+\fs20 \cf3 %     %stateTimer = uint16(0);
+\fs24 \cf0 \
+
+\fs20 \cf3 %     state = uint16(DecisionStates.STATE_FAIL);
+\fs24 \cf0 \
+
+\fs20 \cf3 %     lastHeadSpeedFail = clock;
+\fs24 \cf0 \
+
+\fs20 \cf3 %     lastSoundTime = clock;
+\fs24 \cf0 \
+
+\fs20 \cf3 %     lastSoundState = uint8(DecisionStates.SOUND_STATE_FAIL);
+\fs24 \cf0 \
+
+\fs20 \cf3 % end
+\fs24 \cf0 \
+
+\fs20 \cf3 %% STATE MACHINE
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 switch\cf0  state
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     \cf2 case\cf0  DecisionStates.STATE_INIT \cf3 %runs once per block
+\fs24 \cf0 \
+
+\fs20         \cf3 % get the **block's** rand perm
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %%%%%%%%%%%%%%%%        
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0         \cf3 %SNF: setting trialConds should go in param scripts, yeah? 
+\fs24 \cf0 \
+
+\fs20         stimConds = getStimMat();
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %%%%%%%%%%%%%%%%   
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0             pauseTriggered = stateParameters.pause;
+\fs24 \
+
+\fs20             lockedParameters = cursorParameters;
+\fs24 \
+
+\fs20             writeContinuousData = false;
+\fs24 \
+
+\fs20             inputType = lockedParameters.initialInput; \cf3 %NONE
+\fs24 \cf0 \
+
+\fs20             \cf3 % generate some entropy
+\fs24 \cf0 \
+
+\fs20             jnk = rand(1,1);
+\fs24 \
+
+\fs20             \cf2 if\cf0  ~pauseTriggered
+\fs24 \
+
+\fs20                 stateTimer = stateTimer + 1;
+\fs24 \
+
+\fs20             \cf2 end
+\fs24 \cf0 \
+
+\fs20             \cf2 if\cf0  stateTimer >= INIT_LENGTH
+\fs24 \
+
+\fs20                 stateTimer = uint16(0);
+\fs24 \
+
+\fs20                 trialNum = uint16(0);
+\fs24 \
+
+\fs20                 currentTarget(:) = single(zeros(double(xkConstants.NUM_TARGET_DIMENSIONS),1)); 
+\fs24 \
+
+\fs20                 \cf3 %cycleNum = uint16(0);
+\fs24 \cf0 \
+
+\fs20                 state = DecisionStates.STATE_PRE_TRIAL;
+\fs24 \
+
+\fs20             \cf2 end
+\fs24 \cf0 \
+
+\fs20  
+\fs24 \
+
+\fs20     \cf2 case\cf0  DecisionStates.STATE_PRE_TRIAL \cf3 %runs once per trial
+\fs24 \cf0 \
+
+\fs20         \cf3 % get **trial's** entry from stimConds
+\fs24 \cf0 \
+
+\fs20         fixDur = max(normrnd(500, 100), 300); \cf3 %fixate for at least 300 ms
+\fs24 \cf0 \
+
+\fs20         targDur = min(normrnd(700, 100), 900); \cf3 %don't make user wait for stimulus too long after targ onset
+\fs24 \cf0 \
+
+\fs20        \cf3 % trialConds = lockedParameters.stimConds(trialCount,:); %get the trial's stim and targ values
+\fs24 \cf0 \
+
+\fs20         trialConds = stimConds(trialCount,:); \cf3 %get the trial's stim and targ values
+\fs24 \cf0 \
+
+\fs20          \cf2 if\cf0  ~pauseTriggered
+\fs24 \
+
+\fs20                 stateTimer = stateTimer + 1;
+\fs24 \
+
+\fs20          \cf2 end
+\fs24 \cf0 \
+
+\fs20         \cf3 %get target locations
+\fs24 \cf0 \
+
+\fs20         targAxis = uint16(trialConds(TARG_AXIS_IDX)); \cf3 %are they going to be up/downs (1) or left/rights (2)?
+\fs24 \cf0 \
+
+\fs20         \cf3 %targLocs = lockedParameters.targetInds(1:2, targAxis:2:end); 
+\fs24 \cf0 \
+
+\fs20         targLocs(:, LEFT_DN_TARG_COLOR_IDX -1) = lockedParameters.targetInds(1:2, targAxis:2:end); \cf3 %splitting this up for readability
+\fs24 \cf0 \
+
+\fs20         targLocs(:, RIGHT_UP_TARG_COLOR_IDX -1) = lockedParameters.targetInds(1:2, targAxis+2); 
+\fs24 \
+
+\fs20         \cf3 %get RGB colors for targets: 
+\fs24 \cf0 \
+
+\fs20         targColors(:, LEFT_DN_TARG_COLOR_IDX -1) = COLORMAT(uint16(trialConds(LEFT_DN_TARG_COLOR_IDX))-1,:)'; \cf3 %get target colors
+\fs24 \cf0 \
+
+\fs20         targColors(:, RIGHT_UP_TARG_COLOR_IDX -1) = COLORMAT(uint16(trialConds(RIGHT_UP_TARG_COLOR_IDX))-1,:)';
+\fs24 \
+
+\fs20         \cf3 %GET THIS ^^^ TO PBT but don't display it yet
+\fs24 \cf0 \
+
+\fs20         
+\fs24 \
+
+\fs20         \cf2 if\cf0  stateTimer >= lockedParameters.preTrialLength
+\fs24 \
+
+\fs20                 stateTimer = uint16(0);
+\fs24 \
+
+\fs20                 \cf2 if\cf0  trialNum > lockedParameters.numTrials
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3                     %% are we done?
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0                     state = uint16(CursorStates.STATE_END); \cf3 %SNF get an END state for the block
+\fs24 \cf0 \
+
+\fs20                 \cf2 else
+\fs24 \cf0 \
+
+\fs20                     state = DecisionStates.STATE_FIXATE; \cf3 %on to the actual task
+\fs24 \cf0 \
+
+\fs20                 \cf2 end\cf0                
+\fs24 \
+
+\fs20                 trialDelayLength = uint16(0);                
+\fs24 \
+
+\fs20         \cf2 end
+\fs24 \cf0 \
+
+\fs20     \cf2 case\cf0  DecisionStates.STATE_FIXATE
+\fs24 \
+
+\fs20         \cf3 % hold here until the head and eyes are centered, showing head pos
+\fs24 \cf0 \
+
+\fs20         \cf3 % start a variable delay timer once head is centered and still
+\fs24 \cf0 \
+
+\fs20         currentTarget = centerHold; \cf3 %SNF: look up centerHold values. I hope it's [0, 0]. 
+\fs24 \cf0 \
+
+\fs20         displayAuxCursor = true;
+\fs24 \
+
+\fs20         
+\fs24 \
+
+\fs20         \cf3 % if on the target, start the fixation timer and enforce head still
+\fs24 \cf0 \
+
+\fs20             \cf3 %SNF: this logic here... does this mean if he makes minor corrections
+\fs24 \cf0 \
+
+\fs20             \cf3 % immediately after entering the target he'll fail? 
+\fs24 \cf0 \
+
+\fs20         \cf2 if\cf0  isCursorOnTarget(prevHeadPos, double(lockedParameters.cursorDiameter)/2, currentTarget, targetRadiusTrans, TASK_DIMS)
+\fs24 \
+
+\fs20             \cf3 %displayAuxCursor = false; let him see it centered, why not.
+\fs24 \cf0 \
+
+\fs20             \cf3 %fail if moving the head when he should be holding
+\fs24 \cf0 \
+
+\fs20             \cf2 if\cf0  (lockedParameters.doHeadSpeedFail) && (filteredHeadSpeed > lockedParameters.headSpeedCap) \cf2 ...
+\fs24 \cf0 \
+
+\fs20                     &&  ((clock - lastHeadSpeedFail)>2000)
+\fs24 \
+
+\fs20                 \cf3 %go to fail state
+\fs24 \cf0 \
+
+\fs20                 stateTimer = uint16(0);
+\fs24 \
+
+\fs20                 state = uint16(DecisionStates.STATE_FAIL);
+\fs24 \
+
+\fs20                 \cf3 % reset fail clocks
+\fs24 \cf0 \
+
+\fs20                 lastHeadSpeedFail = clock;
+\fs24 \
+
+\fs20                 lastSoundTime = clock;
+\fs24 \
+
+\fs20                 lastSoundState = uint8(DecisionStates.SOUND_STATE_FAIL);
+\fs24 \
+
+\fs20             \cf2 elseif\cf0  stateTimer < fixDur \cf3 %holding
+\fs24 \cf0 \
+
+\fs20                 stateTimer = stateTimer + 1;
+\fs24 \
+
+\fs20             \cf2 else\cf0  \cf3 % if we've exhausted the fix time, present targets!
+\fs24 \cf0 \
+
+\fs20                 state = DecisionStates.STATE_TARGETS_ONSET;
+\fs24 \
+
+\fs20                 stateTimer = uint16(0);
+\fs24 \
+
+\fs20             \cf2 end
+\fs24 \cf0 \
+
+\fs20         \cf2 else\cf0  \cf3 % stay in this state without the timer incrementing until he gets his head to the center target
+\fs24 \cf0 \
+
+\fs20             \cf3 %this else clause is probs uneccessary
+\fs24 \cf0 \
+
+\fs20             state = DecisionStates.STATE_FIXATE;
+\fs24 \
+
+\fs20             \cf3 %probably an incorrect move, not incrementing the state timer
+\fs24 \cf0 \
+
+\fs20             \cf3 %until we're fixating.... 
+\fs24 \cf0 \
+
+\fs20         \cf2 end
+\fs24 \cf0 \
+
+\fs20         
+\fs24 \
+
+\fs20     \cf2 case\cf0  DecisionStates.STATE_TARGETS_ONSET \cf3 %omfg targets, finally
+\fs24 \cf0 \
+
+\fs20         \cf3 % start a variable delay timer
+\fs24 \cf0 \
+
+\fs20         \cf3 % keep enforcing fixation/head still (keep center target)
+\fs24 \cf0 \
+
+\fs20         \cf3 % extract target info to give PTB
+\fs24 \cf0 \
+
+\fs20         
+\fs24 \
+
+\fs20         \cf3 %fail if moving the head when he shouldn't be
+\fs24 \cf0 \
+
+\fs20         \cf2 if\cf0  (lockedParameters.doHeadSpeedFail) && (filteredHeadSpeed > lockedParameters.headSpeedCap) \cf2 ...
+\fs24 \cf0 \
+
+\fs20                 &&  ((clock - lastHeadSpeedFail)>2000)
+\fs24 \
+
+\fs20             \cf3 %go to fail state
+\fs24 \cf0 \
+
+\fs20             stateTimer = uint16(0);
+\fs24 \
+
+\fs20             state = uint16(DecisionStates.STATE_FAIL);
+\fs24 \
+
+\fs20             \cf3 % reset fail clocks
+\fs24 \cf0 \
+
+\fs20             lastHeadSpeedFail = clock;
+\fs24 \
+
+\fs20             lastSoundTime = clock;
+\fs24 \
+
+\fs20             lastSoundState = uint8(DecisionStates.SOUND_STATE_FAIL);
+\fs24 \
+
+\fs20         \cf2 elseif\cf0  stateTimer < targDur \cf3 %loop while holding still
+\fs24 \cf0 \
+
+\fs20             stateTimer = stateTimer + 1;
+\fs24 \
+
+\fs20         \cf2 else\cf0  \cf3 %if we've timed this state out without moving, onward! 
+\fs24 \cf0 \
+
+\fs20             state = DecisionStates.STATE_STIMULUS_ONSET;
+\fs24 \
+
+\fs20             stateTimer = uint16(0);
+\fs24 \
+
+\fs20         \cf2 end
+\fs24 \cf0 \
+
+\fs20     \cf2 case\cf0  DecisionStates.STATE_STIMULUS_ONSET
+\fs24 \
+
+\fs20         \cf3 % extinguish fixation, draw grid in PTB
+\fs24 \cf0 \
+
+\fs20         numRedSquares = uint16(trialConds(NUM_RED_SQ_IDX));
+\fs24 \
+
+\fs20         \cf3 %start monitoring BCI or head vel
+\fs24 \cf0 \
+
+\fs20         \cf3 % if movement effector > thresh, enter TARGET_ACQUIRE
+\fs24 \cf0 \
+
+\fs20         stateTimer = stateTimer + 1; 
+\fs24 \
+
+\fs20         \cf2 switch\cf0  lockedParameters.taskType
+\fs24 \
+
+\fs20             \cf2 case\cf0  uint32(decisionConstants.TASK_BCI_REPORT)
+\fs24 \
+
+\fs20                 \cf3 % If BCI: start decoding vel
+\fs24 \cf0 \
+
+\fs20                 \cf3 % if BCI, enforce head still
+\fs24 \cf0 \
+
+\fs20                 \cf2 if\cf0  (lockedParameters.doHeadSpeedFail) && (filteredHeadSpeed > lockedParameters.headSpeedCap) \cf2 ...
+\fs24 \cf0 \
+
+\fs20                         &&  ((clock - lastHeadSpeedFail)>2000)
+\fs24 \
+
+\fs20                     \cf3 %go to fail state
+\fs24 \cf0 \
+
+\fs20                     stateTimer = uint16(0);
+\fs24 \
+
+\fs20                     state = uint16(DecisionStates.STATE_FAIL);
+\fs24 \
+
+\fs20                     \cf3 % reset fail clocks
+\fs24 \cf0 \
+
+\fs20                     lastHeadSpeedFail = clock;
+\fs24 \
+
+\fs20                     lastSoundTime = clock;
+\fs24 \
+
+\fs20                     lastSoundState = uint8(DecisionStates.SOUND_STATE_FAIL);
+\fs24 \
+
+\fs20                     \cf3 %inputType = uint32(decisionConstants.INPUT_TYPE_AUTO_ACQUIRE); 
+\fs24 \cf0 \
+
+\fs20                 \cf2 elseif\cf0  sqrt(effectorVel(1)^2 + effectorVel(2)^2) > lockedParameters.moveThresh \cf3 % move to targ if a big vel is sent
+\fs24 \cf0 \
+
+\fs20                     inputType = uint32(decisionConstants.INPUT_TYPE_AUTO_ACQUIRE); 
+\fs24 \
+
+\fs20                     state = DecisionStates.STATE_MOVE;
+\fs24 \
+
+\fs20                     stateTimer = uint16(0);
+\fs24 \
+
+\fs20                 \cf2 elseif\cf0  stateTimer > maxStimDur
+\fs24 \
+
+\fs20                     state = DecisionStates.STATE_MOVE; 
+\fs24 \
+
+\fs20                     inputType = uint32(decisionConstants.INPUT_TYPE_AUTO_ACQUIRE); 
+\fs24 \
+
+\fs20                     stateTimer = uint16(0); 
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %                 else %if not moving or thinkin about moving, hang out and look at grid some more
+\fs24 \cf0 \
+
+\fs20 \cf3 %                     stateTimer = stateTimer + 1; 
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0                 \cf2 end
+\fs24 \cf0 \
+
+\fs20             \cf2 case\cf0  uint32(decisionConstants.TASK_HEAD_REPORT)
+\fs24 \
+
+\fs20                 \cf3 % if head mouse, track head movement with cursor.
+\fs24 \cf0 \
+
+\fs20                 \cf3 %if effectorVel > lockedParameters.headSpeedCap
+\fs24 \cf0 \
+
+\fs20                 \cf2 if\cf0  headSpeed > lockedParameters.headSpeedCap \cf3 %if we exceed the threshold we declared for failing
+\fs24 \cf0 \
+
+\fs20                     state = DecisionStates.STATE_MOVE;
+\fs24 \
+
+\fs20                     stateTimer = uint16(0);
+\fs24 \
+
+\fs20                     inputType = uint32(decisionConstants.INPUT_TYPE_HEAD_MOUSE); 
+\fs24 \
+
+\fs20                 \cf2 elseif\cf0  stateTimer > maxStimDur
+\fs24 \
+
+\fs20                     state = DecisionStates.STATE_MOVE; 
+\fs24 \
+
+\fs20                     stateTimer = uint16(0); 
+\fs24 \
+
+\fs20                     inputType = uint32(decisionConstants.INPUT_TYPE_HEAD_MOUSE); 
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %                 else %if not moving or thinkin about moving, hang out and look at grid some more
+\fs24 \cf0 \
+
+\fs20 \cf3 %                     stateTimer = stateTimer + 1; 
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0                 \cf2 end
+\fs24 \cf0 \
+
+\fs20         \cf2 end
+\fs24 \cf0 \
+
+\fs20     \cf2 case\cf0  DecisionStates.STATE_MOVE 
+\fs24 \
+
+\fs20         \cf3 %hang out and wait for a cursor to get to the target
+\fs24 \cf0 \
+
+\fs20         stateTimer = stateTimer + 1;
+\fs24 \
+
+\fs20         \cf3 % wait here until the cursor is over a target
+\fs24 \cf0 \
+
+\fs20         \cf3 % if cursor over either target, move on: 
+\fs24 \cf0 \
+
+\fs20         trialCount = trialCount + 1; \cf3 %only increment this if a stimulus is complete
+\fs24 \cf0 \
+
+\fs20         
+\fs24 \
+
+\fs20         translateOnTargetLD = isCursorOnTarget(effectorPos, double(lockedParameters.cursorDiameter)/2,\cf2 ...
+\fs24 \cf0 \
+
+\fs20                                         targLocs(:,LEFT_DOWN_TARG_IDX), targetRadiusTrans, TASK_DIMS);
+\fs24 \
+
+\fs20         translateOnTargetRU = isCursorOnTarget(effectorPos, double(lockedParameters.cursorDiameter)/2,\cf2 ...
+\fs24 \cf0 \
+
+\fs20                                         targLocs(:,RIGHT_UP_TARG_IDX), targetRadiusTrans, TASK_DIMS);
+\fs24 \
+
+\fs20         \cf2 if\cf0  translateOnTargetLD || translateOnTargetRU
+\fs24 \
+
+\fs20             state = DecisionStates.STATE_TARGET_ACQUIRE; 
+\fs24 \
+
+\fs20             stateTimer = uint16(0); 
+\fs24 \
+
+\fs20             inputType = uint32(decisionConstants.INPUT_TYPE_NONE); \cf3 %freeze once touching a target
+\fs24 \cf0 \
+
+\fs20         \cf2 end
+\fs24 \cf0 \
+
+\fs20         
+\fs24 \
+
+\fs20     \cf2 case\cf0  DecisionStates.STATE_TARGET_ACQUIRE
+\fs24 \
+
+\fs20         \cf3 %judging - only takes one iteration
+\fs24 \cf0 \
+
+\fs20         stateTimer = stateTimer + 1; \cf3 %therefore this is not needed
+\fs24 \cf0 \
+
+\fs20         
+\fs24 \
+
+\fs20         \cf2 if\cf0  targAxis == uint16(UP_DOWN_AXIS_TARGS)
+\fs24 \
+
+\fs20             decodeDirection = effectorVel(2); \cf3 %taking the sign of Y vel
+\fs24 \cf0 \
+
+\fs20         \cf2 else
+\fs24 \cf0 \
+
+\fs20             decodeDirection = effectorVel(1); \cf3 %taking the sign of X vel
+\fs24 \cf0 \
+
+\fs20         \cf2 end
+\fs24 \cf0 \
+
+\fs20         \cf3 % targPos will be 1 for left or down targ, 2 for right/up
+\fs24 \cf0 \
+
+\fs20         targPos = uint16(trialConds(TARGET_LOC_IDX)); \cf3 %targPos means the success target
+\fs24 \cf0 \
+
+\fs20         
+\fs24 \
+
+\fs20         \cf3 % for ref: LEFT_DN_TARG_S  = 1; %read as "left or down target is the successful one"
+\fs24 \cf0 \
+
+\fs20         \cf3 %          RIGHT_UP_TARG_S = 2;
+\fs24 \cf0 \
+
+\fs20         \cf2 if\cf0  (targPos == uint16(LEFT_DN_TARG_S)) && (decodeDirection < 0) \cf3 % success for left or down and vel is left or down
+\fs24 \cf0 \
+
+\fs20             state = DecisionStates.STATE_SUCCESS;
+\fs24 \
+
+\fs20             lastSoundTime = clock;
+\fs24 \
+
+\fs20             lastSoundState = uint8(DecisionStates.SOUND_STATE_SUCCESS);
+\fs24 \
+
+\fs20             stateTimer = uint16(0); 
+\fs24 \
+
+\fs20         \cf2 elseif\cf0  (targPos == uint16(RIGHT_UP_TARG_S)) && (decodeDirection > 0)\cf3 % success for right or up and vel is right or up
+\fs24 \cf0 \
+
+\fs20             state = DecisionStates.STATE_SUCCESS;
+\fs24 \
+
+\fs20             lastSoundTime = clock;
+\fs24 \
+
+\fs20             lastSoundState = uint8(DecisionStates.SOUND_STATE_SUCCESS);
+\fs24 \
+
+\fs20             stateTimer = uint16(0); 
+\fs24 \
+
+\fs20         \cf2 else
+\fs24 \cf0 \
+
+\fs20             state = DecisionStates.STATE_FAIL; 
+\fs24 \
+
+\fs20             lastSoundTime = clock;
+\fs24 \
+
+\fs20             lastSoundState = uint8(DecisionStates.SOUND_STATE_FAIL);
+\fs24 \
+
+\fs20             stateTimer = uint16(0); 
+\fs24 \
+
+\fs20         \cf2 end
+\fs24 \cf0 \
+
+\fs20         
+\fs24 \
+
+\fs20     \cf2 case\cf0  DecisionStates.STATE_SUCCESS
+\fs24 \
+
+\fs20         \cf3 % play S sound
+\fs24 \cf0 \
+
+\fs20         \cf3 % increment points
+\fs24 \cf0 \
+
+\fs20         \cf3 % clear screen
+\fs24 \cf0 \
+
+\fs20         successPoints = successPoints + lockedParameters.pointsS;  
+\fs24 \
+
+\fs20         state = DecisionStates.STATE_CENTER_TARGET;
+\fs24 \
+
+\fs20         stateTimer = uint16(0);
+\fs24 \
+
+\fs20     \cf2 case\cf0  DecisionStates.STATE_FAIL
+\fs24 \
+
+\fs20         \cf3 % F sound
+\fs24 \cf0 \
+
+\fs20         \cf3 % clear screen
+\fs24 \cf0 \
+
+\fs20         successPoints = successPoints + lockedParameters.pointsF;  
+\fs24 \
+
+\fs20         state = DecisionStates.STATE_CENTER_TARGET;
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20     \cf2 case\cf0  DecisionStates.STATE_CENTER_TARGET \cf3 %This state is done. 
+\fs24 \cf0 \
+
+\fs20             stateTimer = stateTimer + 1;
+\fs24 \
+
+\fs20         \cf3 %    initialCursorPosition = single( effectorPos ); % the (1:NUM_DIMS) is to handhold compilter about the dimensionality
+\fs24 \cf0 \
+
+\fs20            \cf2 if\cf0  isCursorOnTarget(effectorPos, double(lockedParameters.cursorDiameter)/2, currentTarget, targetRadiusTrans, TASK_DIMS)
+\fs24 \
+
+\fs20                 state = uint16(CursorStates.STATE_INTER_TRIAL);
+\fs24 \
+
+\fs20                 stateTimer = uint16(0);
+\fs24 \
+
+\fs20            \cf2 end
+\fs24 \cf0 \
+
+\fs20             
+\fs24 \
+
+\fs20     \cf2 case\cf0  DecisionStates.STATE_INTER_TRIAL
+\fs24 \
+
+\fs20         \cf3 % start intertrial timer
+\fs24 \cf0 \
+
+\fs20         stateTimer = stateTimer + 1;
+\fs24 \
+
+\fs20         \cf2 if\cf0  stateTimer >= lockedParameters.intertrialTime
+\fs24 \
+
+\fs20         state = DecisionStates.STATE_PRE_TRIAL;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %%
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 if\cf0  lockedParameters.maxTaskTime && totalTaskTime > lockedParameters.maxTaskTime
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     state = uint16(DecisionStates.STATE_INTER_TRIAL);
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 taskOutput.xk = xkRaw; \cf3 % feed *raw* xk back out, which goes to decoder and file logger
+\fs24 \cf0 \
+
+\fs20 taskOutput.currentTarget = single(currentTarget(:,1));
+\fs24 \
+
+\fs20 taskOutput.state = state;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %taskOutput.successPoints = uint16(successPoints); 
+\fs24 \cf0 \
+
+\fs20 \cf3 %SNF: make sure effectorPos and effectorVel are getting manipulated
+\fs24 \cf0 \
+
+\fs20 \cf3 %correctly. I think so? it takes place not in this function (updatexK)
+\fs24 \cf0 \
+
+\fs20 \cf3 % make sure we send the compiled dimension size, but only fill the used
+\fs24 \cf0 \
+
+\fs20 \cf3 % task ones.
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 cursorPosition = single(effectorPos');
+\fs24 \
+
+\fs20 cursorVelocity = single(effectorVel');
+\fs24 \
+
+\fs20 taskAgnosticVel = single(taskAgnosticXk(effectorVelInds)');
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% PACK DATA FOR UDP OUTPUT (filelogger continuous) - can also be whatever I want
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 taskOutput.continuous = packFileLoggerFormatAndData(\cf4 'continuous'\cf0 , \cf2 ...
+\fs24 \cf0 \
+
+\fs20     TASK_NAME, VERSION_ID, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'clock'\cf0 , clock, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'pause'\cf0 , pauseTriggered, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'xpcRequestClock'\cf0 , behaviorRequestClock, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'peripheralTimestamp'\cf0 , peripheralTimestamp, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'state'\cf0 , state, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'inputType'\cf0 , inputType, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'windowsPacketSize'\cf0 , behaviorPacket.windowsPacketSize, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'windowsMousePosition'\cf0 , behaviorPacket.windowsMousePosition, \cf2 ...\cf3  %head position
+\fs24 \cf0 \
+
+\fs20     \cf4 'windowsTimestamp'\cf0 , behaviorPacket.windowsTimestamp, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'windowsPC1GazePoint'\cf0 , behaviorPacket.windowsPC1GazePoint, \cf2 ...\cf3  % eye position
+\fs24 \cf0 \
+
+\fs20     \cf4 'windowsPC1GazePointValid'\cf0 , behaviorPacket.windowsPC1GazeValid, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'rigidBodyPosXYZ'\cf0 , behaviorPacket.rigidBodyPosXYZ, \cf2 ...\cf3  %raw head position
+\fs24 \cf0 \
+
+\fs20     \cf4 'rigidBodyRotXYZ'\cf0 , behaviorPacket.rigidBodyRotXYZ, \cf2 ...\cf3  %raw head orientation
+\fs24 \cf0 \
+
+\fs20     \cf4 'windowsPC1Timestamp'\cf0 , behaviorPacket.windowsPC1Timestamp, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'xpcScreenUpdateClock'\cf0 ,vizPacket.xpcScreenUpdateClock,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'cursorPosition'\cf0 , cursorPosition(1:NUM_DIMS), \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'currentTarget'\cf0 , single(currentTarget(:,1)), \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'xk'\cf0 , single(taskOutput.xk),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'stateTimer'\cf0 , stateTimer, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'holdTimer'\cf0 , holdTimer, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'fingerLifted'\cf0 ,uint8(fingerLifted),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'behaviorPacketSize'\cf0 , behaviorPacket.packetSize, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'xpcTET'\cf0 , single(xpcTET), \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'gain'\cf0 , decisionParameters.gain, \cf2 ...\cf3   % not locked
+\fs24 \cf0 \
+
+\fs20     \cf4 'powerGain'\cf0 , decisionParameters.powerGain, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'powerGainUnityCrossing'\cf0 , decisionParameters.powerGain, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'cursorPosition2'\cf0 , cursorPosition2(1:NUM_DIMS), \cf2 ...\cf3  % For RAYS only, not essential since can eb reconstructed from cursorPosition SDS May 2017
+\fs24 \cf0 \
+
+\fs20     \cf4 'xkModBiasEst'\cf0 , single(xkModBiasEst), \cf2 ...\cf3  %the bias estimate coming from the bias killer that acts on xkMod (after nonlinear gain)
+\fs24 \cf0 \
+
+\fs20     \cf4 'successPoints'\cf0 , uint16(successPoints) \cf2 ...\cf3  %keep score
+\fs24 \cf0 \
+
+\fs20 );
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% SEND DISCRETE DATA TO FILELOGGER - adapt to task
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 taskOutput.discrete = packFileLoggerFormatAndData(\cf4 'discrete'\cf0 , \cf2 ...
+\fs24 \cf0 \
+
+\fs20     TASK_NAME, VERSION_ID, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'clock'\cf0 , clock,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'blockNumber'\cf0 , stateParameters.blockNumber,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'taskType'\cf0 , lockedParameters.taskType, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'targetDiameter'\cf0 , single( targetRadiusTrans*2 ), \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'trialDelayLength'\cf0 , trialDelayLength, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'currentTarget'\cf0 , currentTarget,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'currentTargetType'\cf0 , uint16(currentTargetType),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'holdTime'\cf0 , lockedParameters.holdTime, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'trialNum'\cf0 , trialNum, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'inputType'\cf0 , inputType, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'workspace'\cf0 , workspaceAll, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'recenterOnSuccess'\cf0 , lockedParameters.recenterOnSuccess,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'recenterOnFail'\cf0 , lockedParameters.recenterOnFail,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'recenterDelay'\cf0 , lockedParameters.recenterDelay,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'errorAssistR'\cf0 ,single(lockedParameters.errorAssistR),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'errorAssistTheta'\cf0 ,single(lockedParameters.errorAssistTheta),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'errorAssistAxis'\cf0 ,single(lockedParameters.errorAssistAxis),\cf2 ...\cf3  % added Oct 27 2016 SDS
+\fs24 \cf0 \
+
+\fs20     \cf4 'outputType'\cf0 , outputType, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'xk2EffectorPosInds'\cf0 , uint8(effectorPosInds(1:NUM_DIMS)), \cf2 ...\cf3   % want to know hor state is being mapped to game horizontal, veritacl, depth, rotate, ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'xk2EffectorVelInds'\cf0 , uint8(effectorVelInds(1:NUM_DIMS)), \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'numTargets'\cf0 ,  uint16( lockedParameters.numTargets ) \cf2 ...\cf3   % used for RAYS bitrate compute
+\fs24 \cf0 \
+
+\fs20     );
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% SEND DATA OUT TO VIZ - adapt to task demands
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 taskOutput.screen = packFileLoggerFormatAndData(\cf4 'screen'\cf0 , \cf2 ...
+\fs24 \cf0 \
+
+\fs20     TASK_NAME, VERSION_ID, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'clock'\cf0 , clock,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'totalTaskTime'\cf0 ,totalTaskTime,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'blockNumber'\cf0 , stateParameters.blockNumber,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'state'\cf0 ,state,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'cursorPosition'\cf0 ,  horzcat(cursorPosition(1:NUM_DIMS)', cursorPosition2(1:NUM_DIMS)', cursorPosition3(1:NUM_DIMS)),\cf2 ...\cf3  % handhold the compiler with dims here
+\fs24 \cf0 \
+
+\fs20     \cf4 'cursorColors'\cf0 , cursorColors,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'currentTarget'\cf0 , currentTarget,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'cursorDiameter'\cf0 , lockedParameters.cursorDiameter,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'targetDiameter'\cf0 , single( targetRadiusTrans*2 ),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'localAcquired'\cf0 , localAcquired,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'localTotal'\cf0 , localTotal,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'localAcqTime'\cf0 , localAcqTime,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'inputType'\cf0 , inputType,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'taskType'\cf0 , lockedParameters.taskType,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'recenterDelay'\cf0 , lockedParameters.recenterDelay,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'cursorVelocity'\cf0 , cursorVelocity(1:NUM_DIMS), \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'outputType'\cf0 , outputType, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'numDisplayDims'\cf0 , lockedParameters.numDisplayDims, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'displayObject'\cf0 , lockedParameters.displayObject, \cf2 ...\cf3  % not logged
+\fs24 \cf0 \
+
+\fs20     \cf4 'numTargets'\cf0 ,uint8(lockedParameters.numTargets), \cf2 ...\cf3  % used only by PTB. SNF says it should be 2
+\fs24 \cf0 \
+
+\fs20     \cf4 'nextTarget'\cf0 , nextTarget(1:2),\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'targetInds'\cf0 , int16(lockedParameters.targetInds(1:4,1:16)), \cf2 ...\cf3  % only twoD, 8 targets, to support doing monthly R8/Fitts in PTB from same compiled code.
+\fs24 \cf0 \
+
+\fs20     \cf4 'cursorAlpha2'\cf0 , cursorAlpha2, \cf2 ...\cf3  % only used for RAYS to shade cursor2.
+\fs24 \cf0 \
+
+\fs20     \cf4 'splitDimensions'\cf0 , lockedParameters.splitDimensions, \cf2 ...\cf3  % instructs whether to render graphics as two cursors with half as many DOF
+\fs24 \cf0 \
+
+\fs20     \cf4 'targColors'\cf0 , uint8(targColors), \cf2 ...\cf3  %send 1x2 vector of colors for [L/D, R/U] targets to PTB
+\fs24 \cf0 \
+
+\fs20     \cf4 'stimulusConds'\cf0 , trialConds, \cf2 ...\cf3  %log stimulus/target info for DM
+\fs24 \cf0 \
+
+\fs20     \cf4 'successPoints'\cf0 , uint16(successPoints) \cf2 ...\cf3  %keep score
+\fs24 \cf0 \
+
+\fs20     );
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % removed because I don't think it makes sense to send these to screen in >
+\fs24 \cf0 \
+
+\fs20 \cf3 % 2D.
+\fs24 \cf0 \
+
+\fs20 \cf3 % targetInds is HUGE, we'd only want to send it for the 2D, PTB engine
+\fs24 \cf0 \
+
+\fs20 \cf3 % where we actualy drew all the possible targets on the screen.
+\fs24 \cf0 \
+
+\fs20 \cf3 % care, I think. nextTarget isn't used by screen either.
+\fs24 \cf0 \
+
+\fs20 \cf3 %     'targetInds',int16(lockedParameters.targetInds(1:int8(xkConstants.NUM_TARGET_DIMENSIONS),1:uint8(cursorConstants.MAX_TARGETS))), ...  % SDS Aug 2016: uses a fair number of bytes, lower if running out
+\fs24 \cf0 \
+
+\fs20 \cf3  
+\fs24 \cf0 \
+
+\fs20 \cf3 %% SEND DATA OUT TO SOUND - don't fuck with this either
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 taskOutput.sound = packFileLoggerFormatAndData(\cf4 'screen'\cf0 , \cf2 ...
+\fs24 \cf0 \
+
+\fs20     TASK_NAME, VERSION_ID, \cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'clock'\cf0 , clock,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'vizState'\cf0 ,state,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'lastSoundTime'\cf0 ,lastSoundTime,\cf2 ...
+\fs24 \cf0 \
+
+\fs20     \cf4 'lastSoundState'\cf0 ,lastSoundState\cf2 ...
+\fs24 \cf0 \
+
+\fs20     );
+\fs24 \
+
+\fs20  
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %% SET SEND FLAGS FOR NETWORK OUTPUTS - don't fuck with this
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 if\cf0 (clock < INIT_TIME)
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     taskOutput.discrete.data.send = false;
+\fs24 \
+
+\fs20     taskOutput.continuous.data.send = false;
+\fs24 \
+
+\fs20     taskOutput.screen.data.send = false;
+\fs24 \
+
+\fs20     taskOutput.sound.data.send = false;
+\fs24 \
+
+\fs20     
+\fs24 \
+
+\fs20     \cf2 if\cf0 (mod(clock, 10)==0)
+\fs24 \
+
+\fs20         taskOutput.sendFormat = true;
+\fs24 \
+
+\fs20     \cf2 else
+\fs24 \cf0 \
+
+\fs20         taskOutput.sendFormat = false;
+\fs24 \
+
+\fs20     \cf2 end
+\fs24 \cf0 \
+
+\fs20     stateTimer = uint16(0);
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 else
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     taskOutput.discrete.data.send = writeDiscreteData;
+\fs24 \
+
+\fs20     taskOutput.continuous.data.send = writeContinuousData;
+\fs24 \
+
+\fs20     taskOutput.screen.data.send = true;
+\fs24 \
+
+\fs20     taskOutput.sound.data.send = true;
+\fs24 \
+
+\fs20     taskOutput.sendFormat = false;
+\fs24 \
+
+\fs20     taskOutput.inputType = inputType;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 taskOutput.paused = pauseTriggered;
+\fs24 \
+
+\fs20 lastState = state;
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+
+\fs20 \cf2 function\cf0  translateOnTarget = isCursorOnTarget(effectorPos, cursorRadius, targetPosition, targetRadius, TASK_DIMS)
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 %
+\fs24 \cf0 \
+
+\fs20 \cf3 % translateOnTarget returns true if at least the translation (dims 1:3)
+\fs24 \cf0 \
+
+\fs20 \cf3 % are over the target. This can be used to visually depict that
+\fs24 \cf0 \
+
+\fs20 \cf3 % translation, but not rotation, is correct. - SDS March 2017
+\fs24 \cf0 \
+
+\fs20 \cf3  
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 useDims = TASK_DIMS;
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 if\cf0  sqrt( sum( ((double( effectorPos(1:useDims) ) - double( targetPosition(1:useDims) )).^2 ) ) ) < \cf2 ...
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0         double(targetRadius)
+\fs24 \
+
+\fs20     translateOnTarget = true;
+\fs24 \
+
+\fs20     \cf3 % Translation check passed
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 else
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0     translateOnTarget = false;
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+
+\fs20 \cf2 function\cf0  StimCondMat =  getStimMat()
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % col 1: 2 = L/R, 1 = U/D
+\fs24 \cf0 \
+
+\fs20 \cf3 % col 2: color of Left/Down targ 2 = red, 3 = green
+\fs24 \cf0 \
+
+\fs20 \cf3 % col 3: color of right/up targ 2 = red, 3 = green
+\fs24 \cf0 \
+
+\fs20 \cf3 % col 4: number of red squares (out of 255)
+\fs24 \cf0 \
+
+\fs20 \cf3 % col 5: which target is correct. 1 = left/down, 2 = right/up
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 StimCondMat = [
+\fs24 \
+
+\fs20     1 2 3 214 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 180 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 158 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 147 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 135 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 124 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 117 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 108 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 101 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 90  2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 78  2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 67  2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 45  2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 2 3 11  2;
+\fs24 \
+
+\fs20     1 3 2 214 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2 180 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2 158 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2 147 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2 135 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2 124 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2 117 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2 108 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2 101 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2  90 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2  78 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2  67 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2  45 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     1 3 2  11 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 214 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 180 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 158 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 147 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 135 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 124 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 117 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 108 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 101 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 90  2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 78  2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 67  2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 45  2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 2 3 11  2;
+\fs24 \
+
+\fs20     2 3 2 214 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2 180 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2 158 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2 147 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2 135 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2 124 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2 117 2;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2 108 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2 101 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2  90 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2  78 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2  67 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2  45 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     2 3 2  11 1;\cf2 ...
+\fs24 \cf0 \
+
+\fs20     ];
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf3 % Block randomizer
+\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0 BlockVTrialOrder = randperm(size(StimCondMat,1));
+\fs24 \
+
+\fs20 StimCondMat = StimCondMat(BlockVTrialOrder,:);
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+
+\fs20 \cf2 function\cf0  vizPacket = parseVizPacket(packetData)
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0  
+\fs24 \
+
+\fs20 vizPacket.xpcScreenUpdateClock = typecast(packetData(28+[1:4]), \cf4 'uint32'\cf0 );
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+
+\fs20 \cf2  
+\fs24 \cf0 \
+
+\fs20 \cf2 function\cf0  vizPacket = initVizPacket()
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf0  
+\fs24 \
+
+\fs20 vizPacket.xpcScreenUpdateClock = uint32(0);
+\fs24 \
+
+\fs20  
+\fs24 \
+\pard\pardeftab720\partightenfactor0
+
+\fs20 \cf2 end
+\fs24 \cf0 \
+}

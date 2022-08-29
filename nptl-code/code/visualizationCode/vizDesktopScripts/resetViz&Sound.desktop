@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=resetViz&Sound
+Comment=
+Exec=/home/nptl/code/visualizationCode/resetVizAndSound.sh
+Icon=face-sick
+Path=
+Terminal=false
+StartupNotify=false

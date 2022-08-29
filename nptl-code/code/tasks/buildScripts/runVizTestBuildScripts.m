@@ -1,0 +1,5 @@
+rigHardware_buildWorkspace
+vizTest_buildWorkspace
+decoderSplit_buildWorkspace
+postProcessing_buildWorkspace
+xpcNICConfig = xpcNICConfigWest();

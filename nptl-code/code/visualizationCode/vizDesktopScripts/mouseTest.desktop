@@ -1,0 +1,12 @@
+
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MouseTest
+Comment=
+Exec=xterm -e "cd /home/nptl/code/peripheralCode/usbEthernetBridge && sh runUEB-MouseTest.sh; read -n1"
+Icon=
+Path=
+Terminal=false
+StartupNotify=false
+GenericName=

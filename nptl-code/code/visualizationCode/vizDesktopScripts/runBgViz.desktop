@@ -1,0 +1,12 @@
+
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Visualization
+Comment=
+Exec=xterm -geometry 100x30+0-0 -e "sh runBgViz.sh; read -n1"
+Icon=xfce4-splash
+Path=
+Terminal=false
+StartupNotify=false
+GenericName=

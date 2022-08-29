@@ -1,0 +1,177 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww20580\viewh15820\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 fwillett@nptl-cpu:/net/home/fwillett/pre_LFADS/t5-2017-04-03$ bash bashScript.shReading data from  /net/home/fwillett/pre_LFADS/t5-2017-04-03/\
+loading data from /net/home/fwillett/pre_LFADS/t5-2017-04-03/ with stem t5-2017-04-03\
+1 datasets loaded\
+Found training set with number examples:  774\
+Found validation set with number examples:  194\
+2017-09-07 20:25:57.072354: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.\
+2017-09-07 20:25:57.072409: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.\
+2017-09-07 20:25:57.072421: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.\
+2017-09-07 20:25:57.072431: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.\
+2017-09-07 20:25:57.072445: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.\
+2017-09-07 20:26:19.343632: I tensorflow/core/common_runtime/gpu/gpu_device.cc:940] Found device 0 with properties:\
+name: Tesla K80\
+major: 3 minor: 7 memoryClockRate (GHz) 0.8235\
+pciBusID 0000:04:00.0\
+Total memory: 11.17GiB\
+Free memory: 11.11GiB\
+2017-09-07 20:26:19.803187: W tensorflow/stream_executor/cuda/cuda_driver.cc:523] A non-primary context 0x4ae8a80 exists before initializing the StreamExecutor. We haven't verified StreamExecutor works with that.\
+2017-09-07 20:26:19.804600: I tensorflow/core/common_runtime/gpu/gpu_device.cc:940] Found device 1 with properties:\
+name: Tesla K80\
+major: 3 minor: 7 memoryClockRate (GHz) 0.8235\
+pciBusID 0000:05:00.0\
+Total memory: 11.17GiB\
+Free memory: 11.11GiB\
+2017-09-07 20:26:20.253787: W tensorflow/stream_executor/cuda/cuda_driver.cc:523] A non-primary context 0x4aec410 exists before initializing the StreamExecutor. We haven't verified StreamExecutor works with that.\
+2017-09-07 20:26:20.255112: I tensorflow/core/common_runtime/gpu/gpu_device.cc:940] Found device 2 with properties:\
+name: Tesla K80\
+major: 3 minor: 7 memoryClockRate (GHz) 0.8235\
+pciBusID 0000:08:00.0\
+Total memory: 11.17GiB\
+Free memory: 11.11GiB\
+2017-09-07 20:26:20.728944: W tensorflow/stream_executor/cuda/cuda_driver.cc:523] A non-primary context 0x4aefda0 exists before initializing the StreamExecutor. We haven't verified StreamExecutor works with that.\
+2017-09-07 20:26:20.730311: I tensorflow/core/common_runtime/gpu/gpu_device.cc:940] Found device 3 with properties:\
+name: Tesla K80\
+major: 3 minor: 7 memoryClockRate (GHz) 0.8235\
+pciBusID 0000:09:00.0\
+Total memory: 11.17GiB\
+Free memory: 11.11GiB\
+2017-09-07 20:26:20.845627: W tensorflow/stream_executor/cuda/cuda_driver.cc:523] A non-primary context 0x4af3730 exists before initializing the StreamExecutor. We haven't verified StreamExecutor works with that.\
+2017-09-07 20:26:20.847548: I tensorflow/core/common_runtime/gpu/gpu_device.cc:940] Found device 4 with properties:\
+name: GeForce GT 740\
+major: 3 minor: 0 memoryClockRate (GHz) 0.993\
+pciBusID 0000:81:00.0\
+Total memory: 1.95GiB\
+Free memory: 1.94GiB\
+2017-09-07 20:26:21.442876: W tensorflow/stream_executor/cuda/cuda_driver.cc:523] A non-primary context 0x4af70c0 exists before initializing the StreamExecutor. We haven't verified StreamExecutor works with that.\
+2017-09-07 20:26:21.445025: I tensorflow/core/common_runtime/gpu/gpu_device.cc:940] Found device 5 with properties:\
+name: Tesla K80\
+major: 3 minor: 7 memoryClockRate (GHz) 0.8235\
+pciBusID 0000:84:00.0\
+Total memory: 11.17GiB\
+Free memory: 11.11GiB\
+2017-09-07 20:26:22.007377: W tensorflow/stream_executor/cuda/cuda_driver.cc:523] A non-primary context 0x4afaa50 exists before initializing the StreamExecutor. We haven't verified StreamExecutor works with that.\
+2017-09-07 20:26:22.009443: I tensorflow/core/common_runtime/gpu/gpu_device.cc:940] Found device 6 with properties:\
+name: Tesla K80\
+major: 3 minor: 7 memoryClockRate (GHz) 0.8235\
+pciBusID 0000:85:00.0\
+Total memory: 11.17GiB\
+Free memory: 11.11GiB\
+2017-09-07 20:26:22.589790: W tensorflow/stream_executor/cuda/cuda_driver.cc:523] A non-primary context 0x4afe3e0 exists before initializing the StreamExecutor. We haven't verified StreamExecutor works with that.\
+2017-09-07 20:26:22.592044: I tensorflow/core/common_runtime/gpu/gpu_device.cc:940] Found device 7 with properties:\
+name: Tesla K80\
+major: 3 minor: 7 memoryClockRate (GHz) 0.8235\
+pciBusID 0000:88:00.0\
+Total memory: 11.17GiB\
+Free memory: 11.11GiB\
+2017-09-07 20:26:23.155964: W tensorflow/stream_executor/cuda/cuda_driver.cc:523] A non-primary context 0x4b01d70 exists before initializing the StreamExecutor. We haven't verified StreamExecutor works with that.\
+2017-09-07 20:26:23.157459: I tensorflow/core/common_runtime/gpu/gpu_device.cc:940] Found device 8 with properties:\
+name: Tesla K80\
+major: 3 minor: 7 memoryClockRate (GHz) 0.8235\
+pciBusID 0000:89:00.0\
+Total memory: 11.17GiB\
+Free memory: 11.11GiB\
+2017-09-07 20:26:23.163946: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 0 and 4\
+2017-09-07 20:26:23.163973: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 0 and 5\
+2017-09-07 20:26:23.163984: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 0 and 6\
+2017-09-07 20:26:23.163993: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 0 and 7\
+2017-09-07 20:26:23.164005: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 0 and 8\
+2017-09-07 20:26:23.167033: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 1 and 4\
+2017-09-07 20:26:23.167249: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 1 and 5\
+2017-09-07 20:26:23.167342: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 1 and 6\
+2017-09-07 20:26:23.167367: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 1 and 7\
+2017-09-07 20:26:23.167391: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 1 and 8\
+2017-09-07 20:26:23.169297: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 2 and 4\
+2017-09-07 20:26:23.169336: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 2 and 5\
+2017-09-07 20:26:23.169358: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 2 and 6\
+2017-09-07 20:26:23.169378: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 2 and 7\
+2017-09-07 20:26:23.169398: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 2 and 8\
+2017-09-07 20:26:23.169532: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 3 and 4\
+2017-09-07 20:26:23.169554: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 3 and 5\
+2017-09-07 20:26:23.169574: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 3 and 6\
+2017-09-07 20:26:23.169596: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 3 and 7\
+2017-09-07 20:26:23.169618: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 3 and 8\
+2017-09-07 20:26:23.169631: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 4 and 0\
+2017-09-07 20:26:23.169642: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 4 and 1\
+2017-09-07 20:26:23.169653: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 4 and 2\
+2017-09-07 20:26:23.169666: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 4 and 3\
+2017-09-07 20:26:23.169678: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 4 and 5\
+2017-09-07 20:26:23.169689: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 4 and 6\
+2017-09-07 20:26:23.169699: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 4 and 7\
+2017-09-07 20:26:23.169710: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 4 and 8\
+2017-09-07 20:26:23.169748: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 5 and 0\
+2017-09-07 20:26:23.169765: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 5 and 1\
+2017-09-07 20:26:23.169785: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 5 and 2\
+2017-09-07 20:26:23.169806: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 5 and 3\
+2017-09-07 20:26:23.169820: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 5 and 4\
+2017-09-07 20:26:23.174888: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 6 and 0\
+2017-09-07 20:26:23.174919: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 6 and 1\
+2017-09-07 20:26:23.174938: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 6 and 2\
+2017-09-07 20:26:23.174957: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 6 and 3\
+2017-09-07 20:26:23.174970: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 6 and 4\
+2017-09-07 20:26:23.179181: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 7 and 0\
+2017-09-07 20:26:23.179239: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 7 and 1\
+2017-09-07 20:26:23.179265: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 7 and 2\
+2017-09-07 20:26:23.179285: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 7 and 3\
+2017-09-07 20:26:23.179299: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 7 and 4\
+2017-09-07 20:26:23.181151: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 8 and 0\
+2017-09-07 20:26:23.181187: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 8 and 1\
+2017-09-07 20:26:23.181208: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 8 and 2\
+2017-09-07 20:26:23.181228: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 8 and 3\
+2017-09-07 20:26:23.181241: I tensorflow/core/common_runtime/gpu/gpu_device.cc:832] Peer access not supported between device ordinals 8 and 4\
+2017-09-07 20:26:23.181985: I tensorflow/core/common_runtime/gpu/gpu_device.cc:961] DMA: 0 1 2 3 4 5 6 7 8\
+2017-09-07 20:26:23.182006: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971] 0:   Y Y Y Y N N N N N\
+2017-09-07 20:26:23.182018: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971] 1:   Y Y Y Y N N N N N\
+2017-09-07 20:26:23.182030: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971] 2:   Y Y Y Y N N N N N\
+2017-09-07 20:26:23.182041: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971] 3:   Y Y Y Y N N N N N\
+2017-09-07 20:26:23.182053: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971] 4:   N N N N Y N N N N\
+2017-09-07 20:26:23.182064: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971] 5:   N N N N N Y Y Y Y\
+2017-09-07 20:26:23.182075: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971] 6:   N N N N N Y Y Y Y\
+2017-09-07 20:26:23.182086: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971] 7:   N N N N N Y Y Y Y\
+2017-09-07 20:26:23.182098: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971] 8:   N N N N N Y Y Y Y\
+2017-09-07 20:26:23.182140: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K80, pci bus id: 0000:04:00.0)\
+2017-09-07 20:26:23.182156: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Creating TensorFlow device (/gpu:1) -> (device: 1, name: Tesla K80, pci bus id: 0000:05:00.0)\
+2017-09-07 20:26:23.182169: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Creating TensorFlow device (/gpu:2) -> (device: 2, name: Tesla K80, pci bus id: 0000:08:00.0)\
+2017-09-07 20:26:23.182180: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Creating TensorFlow device (/gpu:3) -> (device: 3, name: Tesla K80, pci bus id: 0000:09:00.0)\
+2017-09-07 20:26:23.182192: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1017] Ignoring gpu device (device: 4, name: GeForce GT 740, pci bus id: 0000:81:00.0) with Cuda multiprocessor count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.\
+2017-09-07 20:26:23.182215: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Creating TensorFlow device (/gpu:4) -> (device: 5, name: Tesla K80, pci bus id: 0000:84:00.0)\
+2017-09-07 20:26:23.182227: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Creating TensorFlow device (/gpu:5) -> (device: 6, name: Tesla K80, pci bus id: 0000:85:00.0)\
+2017-09-07 20:26:23.182238: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Creating TensorFlow device (/gpu:6) -> (device: 7, name: Tesla K80, pci bus id: 0000:88:00.0)\
+2017-09-07 20:26:23.182249: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Creating TensorFlow device (/gpu:7) -> (device: 8, name: Tesla K80, pci bus id: 0000:89:00.0)\
+Building graph...\
+done.\
+Model Variables (to be optimized):\
+     0 LFADS/glm/fac_2_logrates_h5/W:0 [20, 176]\
+     1 LFADS/glm/fac_2_logrates_h5/b:0 [1, 176]\
+     2 LFADS/ic_enc_fwd/ic_enc_t0_fwd:0 [1, 128]\
+     3 LFADS/ic_enc_fwd/GRU/Gates/xh_2_ru/W:0 [304, 256]\
+     4 LFADS/ic_enc_fwd/GRU/Gates/xh_2_ru/b:0 [1, 256]\
+     5 LFADS/ic_enc_fwd/GRU/Candidate/xrh_2_c/W:0 [304, 128]\
+     6 LFADS/ic_enc_fwd/GRU/Candidate/xrh_2_c/b:0 [1, 128]\
+     7 LFADS/ic_enc_rev/ic_enc_t0_rev:0 [1, 128]\
+     8 LFADS/ic_enc_rev/GRU/Gates/xh_2_ru/W:0 [304, 256]\
+     9 LFADS/ic_enc_rev/GRU/Gates/xh_2_ru/b:0 [1, 256]\
+     10 LFADS/ic_enc_rev/GRU/Candidate/xrh_2_c/W:0 [304, 128]\
+     11 LFADS/ic_enc_rev/GRU/Candidate/xrh_2_c/b:0 [1, 128]\
+     12 LFADS/z/prior_g0/mean:0 [1, 64]\
+     13 LFADS/z/ic_enc_2_post_g0/mean/W:0 [256, 64]\
+     14 LFADS/z/ic_enc_2_post_g0/mean/b:0 [1, 64]\
+     15 LFADS/z/ic_enc_2_post_g0/logvar/W:0 [256, 64]\
+     16 LFADS/z/ic_enc_2_post_g0/logvar/b:0 [1, 64]\
+     17 LFADS/gen/g0_2_gen_ic/W:0 [64, 200]\
+     18 LFADS/gen/g0_2_gen_ic/b:0 [1, 200]\
+     19 LFADS/gen/gen_2_fac/W:0 [200, 20]\
+     20 LFADS/gen/GenGRU/Gates/h_2_ru/W:0 [200, 400]\
+     21 LFADS/gen/GenGRU/Gates/h_2_ru/b:0 [1, 400]\
+     22 LFADS/gen/GenGRU/Candidate/rh_2_c/W:0 [200, 200]\
+     23 LFADS/gen/GenGRU/Candidate/rh_2_c/b:0 [1, 200]\
+Total model parameters:  408752\
+Loading latest training checkpoint in:  /net/home/fwillett/post_LFADS/t5-2017-04-03\
+ckpt:  None\
+Created model with fresh parameters.}

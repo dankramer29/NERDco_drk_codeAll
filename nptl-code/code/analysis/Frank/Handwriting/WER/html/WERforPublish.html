@@ -1,0 +1,182 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>WORD ERROR RATE</title><meta name="generator" content="MATLAB 8.5"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2016-03-07"><meta name="DC.source" content="WERforPublish.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>WORD ERROR RATE</h1><!--introduction--><p><tt>Word error rate</tt> (WER) is a measure (metric) of the performance of an automatic speech recognition, machine translation etc.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Description</a></li><li><a href="#3">Usage</a></li><li><a href="#4">Examples</a></li></ul></div><h2>Description<a name="1"></a></h2><p>The function is intended for calculation of WER between word  sequence <i>H</i> (hypothesis) and word sequence <i>R</i> (reference).</p><p>For calculation we use Levenshtein distance on word level. Levenshtein distance is a minimal quantity of insertions, deletions and substitutions of words for conversion of a hypothesis to a reference.</p><p><img src="WERforPublish_eq08987099559109081111.png" alt="$$ WER = \frac{D(H,R)}{N} $$"></p><p>where <i>D(H,R)</i> is a Levenshtein distance between <i>H</i> and <i>R</i>, and <i>N</i> is the number of words in the reference <i>R</i>. <i>H</i> and <i>R</i> are cell arrays of words (for example after using TEXTSCAN) or cells with word sequences or strings. Types of <i>H</i> and <i>R</i> may be different.</p><h2>Usage<a name="3"></a></h2><p><tt>W = WER(H,R)</tt> returns array W.</p><div><ul><li>W(1) is WER for case sensitive.</li><li>W(2) is WER for case insensitive.</li></ul></div><p><tt>W = WER(H,R,1)</tt> and both <i>H</i> and <i>R</i> are strings then we calculate distances on character level and result is the character error rate (CHR).</p><h2>Examples<a name="4"></a></h2><div><ul><li><tt>1. Cell arrays of words</tt></li></ul></div><pre class="codeinput">h=[{<span class="string">'The'</span>},{<span class="string">'carpenter'</span>},{<span class="string">'said'</span>},{<span class="string">'that'</span>},{<span class="string">'average'</span>},{<span class="string">'well'</span>},<span class="keyword">...</span>
+  {<span class="string">'is'</span>},{<span class="string">'concealing'</span>},{<span class="string">'a'</span>},{<span class="string">'lot'</span>},{<span class="string">'of'</span>},{<span class="string">'variance'</span>}];
+r=[{<span class="string">'Then'</span>},{<span class="string">'Carpenter'</span>},{<span class="string">'said'</span>},{<span class="string">'that'</span>},{<span class="string">'average'</span>},{<span class="string">'value'</span>},<span class="keyword">...</span>
+  {<span class="string">'is'</span>},{<span class="string">'concealing'</span>},{<span class="string">'a'</span>},{<span class="string">'lot'</span>},{<span class="string">'of'</span>},{<span class="string">'variances'</span>}];
+w=WER(h,r);
+disp(<span class="string">'WER, case sensitive'</span>);disp(w(1))
+disp(<span class="string">'WER, case insensitive'</span>);disp(w(2))
+</pre><pre class="codeoutput">WER, case sensitive
+      0.33333
+WER, case insensitive
+         0.25
+</pre><div><ul><li><tt>2. Cells with word sequences</tt></li></ul></div><pre class="codeinput">h={<span class="string">'The'</span>,<span class="string">'English'</span>,<span class="string">'word'</span>,<span class="string">'probability'</span>,<span class="string">'derives'</span>,<span class="keyword">...</span>
+   <span class="string">'from'</span>,<span class="string">'Latin'</span>,<span class="string">'word'</span>,<span class="string">'probitas'</span>};
+r={<span class="string">'The'</span>,<span class="string">'English'</span>,<span class="string">'word'</span>,<span class="string">'Probability'</span>,<span class="string">'derives'</span>,<span class="keyword">...</span>
+   <span class="string">'from'</span>,<span class="string">'the'</span>,<span class="string">'Latinic'</span>,<span class="string">'word'</span>,<span class="string">'Probabilitas'</span>};
+w=WER(h,r);
+disp(<span class="string">'WER, case sensitive'</span>);disp(w(1))
+disp(<span class="string">'WER, case insensitive'</span>);disp(w(2))
+</pre><pre class="codeoutput">WER, case sensitive
+          0.4
+WER, case insensitive
+          0.3
+</pre><div><ul><li><tt>3. Strings</tt></li></ul></div><pre class="codeinput">h=<span class="string">'Mathworks connection programs'</span>;
+r=<span class="string">'MathWorks Connections Program'</span>;
+w=WER(h,r);
+disp(<span class="string">'WER, case sensitive'</span>);disp(w(1))
+disp(<span class="string">'WER, case insensitive'</span>);disp(w(2))
+w=WER(h,r,1);
+disp(<span class="string">'CHR, case sensitive'</span>);disp(w(1))
+disp(<span class="string">'CHR, case insensitive'</span>);disp(w(2))
+</pre><pre class="codeoutput">WER, case sensitive
+     1
+WER, case insensitive
+      0.66667
+CHR, case sensitive
+      0.17241
+CHR, case insensitive
+     0.068966
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2015a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% WORD ERROR RATE
+% |Word error rate| (WER) is a measure (metric) of the performance  
+% of an automatic speech recognition, machine translation etc.
+
+%% Description
+% The function is intended for calculation of WER between word
+%  sequence _H_ (hypothesis) and word sequence _R_ (reference).
+%
+% For calculation we use Levenshtein distance on word level.
+% Levenshtein distance is a minimal quantity of insertions,
+% deletions and substitutions of words for conversion of a hypothesis to 
+% a reference.
+%%
+%
+% $$ WER = \frac{D(H,R)}{N} $$
+%
+% where _D(H,R)_ is a Levenshtein distance between _H_ and _R_, and _N_ is
+% the number of words in the reference _R_.
+% _H_ and _R_ are cell arrays of words (for example after using TEXTSCAN)
+% or cells with word sequences or strings. Types of _H_ and _R_ may be
+% different.
+
+
+%% Usage
+% |W = WER(H,R)| returns array W. 
+%
+% * W(1) is WER for case sensitive.
+% * W(2) is WER for case insensitive.
+% 
+% |W = WER(H,R,1)| and both _H_ and _R_ are strings then we calculate  
+% distances on character level and result is the character error rate (CHR).
+%
+%% Examples
+%%
+% 
+%%
+% 
+% * |1. Cell arrays of words|
+h=[{'The'},{'carpenter'},{'said'},{'that'},{'average'},{'well'},...
+  {'is'},{'concealing'},{'a'},{'lot'},{'of'},{'variance'}];
+r=[{'Then'},{'Carpenter'},{'said'},{'that'},{'average'},{'value'},...
+  {'is'},{'concealing'},{'a'},{'lot'},{'of'},{'variances'}];
+w=WER(h,r);
+disp('WER, case sensitive');disp(w(1))
+disp('WER, case insensitive');disp(w(2))
+%%
+% 
+% * |2. Cells with word sequences|
+h={'The','English','word','probability','derives',...
+   'from','Latin','word','probitas'};
+r={'The','English','word','Probability','derives',...
+   'from','the','Latinic','word','Probabilitas'};
+w=WER(h,r);
+disp('WER, case sensitive');disp(w(1))
+disp('WER, case insensitive');disp(w(2))
+%%
+% 
+% * |3. Strings|
+h='Mathworks connection programs';
+r='MathWorks Connections Program';
+w=WER(h,r);
+disp('WER, case sensitive');disp(w(1))
+disp('WER, case insensitive');disp(w(2))
+w=WER(h,r,1);
+disp('CHR, case sensitive');disp(w(1))
+disp('CHR, case insensitive');disp(w(2))
+
+
+
+
+
+
+##### SOURCE END #####
+--></body></html>

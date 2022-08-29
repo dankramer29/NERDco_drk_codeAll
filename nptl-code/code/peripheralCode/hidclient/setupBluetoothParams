@@ -1,0 +1,13 @@
+#!/bin/bash
+
+sudo hciconfig hci0 class 0x000540
+sudo hciconfig hci0 name "NPTL BrainMouse"
+sudo sdptool del 0x10000
+sudo sdptool del 0x10001
+sudo sdptool del 0x10002
+sudo sdptool del 0x10003
+sudo sdptool del 0x10004
+sudo sdptool del 0x10005
+sudo sdptool del 0x10006
+sudo sdptool del 0x10007
+sudo sdptool del 0x10008

@@ -1,0 +1,44 @@
+#!/usr/bin/bash
+
+echo "About to clear data directory.... Are you sure?"
+echo "Press 'y' key to continue, any other key to abort."
+read -s -n1 YESNO
+
+if [[ $YESNO == 'y' ]]
+then
+	echo "Clearing drive..."
+	
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/FileLogger/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/_Lateral/NSP\ Data/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/_Medial/NSP\ Data/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/R/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/stream/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/FA/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/_Lateral/System\ Tests/Cross\ Talk/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/_Lateral/System\ Tests/Impedances/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/_Lateral/Screen\ Shots/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/_Medial/System\ Tests/Cross\ Talk/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/_Medial/System\ Tests/Impedances/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/_Medial/Screen\ Shots/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/Video/D3200/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/Video/D3200/100D3200/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/Video/D3200/101D3200/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/Video/XR550V/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/Video/AzRecorderFree/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Data/Video/Audio/*
+	
+
+	/usr/bin/rm -rf /cygdrive/e/Session/Analysis/DecoderAnalysis/*
+	/usr/bin/rm -rf /cygdrive/e/Session/Analysis/FilterBuildFigs/*
+
+	/usr/bin/rm -f /cygdrive/e/Session/Data/Filters/*.mat
+	/usr/bin/rm -f /cygdrive/e/Session/Data/Filters/Discrete/*
+	/usr/bin/rm -f /cygdrive/e/Session/Documents/*
+	/usr/bin/rm -f /cygdrive/e/Session/Data/Log/*.mat
+	
+	echo "Done. Press any key to continue."
+else
+	echo "Aborted! Press any key to continue."
+fi
+
+read -n 1

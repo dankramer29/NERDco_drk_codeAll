@@ -1,0 +1,12 @@
+make sure the two lines have been added to /etc/bluetooth/main.conf (see the rigManagement/configuration dir)
+
+ensure bluetooth is working via hciconfig
+
+startBluetoothBrainMouse
+
+can use stopBluetoohBrainMouse if things misbehave to kill everything (hopefully)
+
+OLD instructions
+make the adapter changes by calling setupBluetoothParams
+ensure the /tmp/hidMouse fifo exists by calling mkBluetoothFIFO
+run the hidclient bridge via runHIDBridge

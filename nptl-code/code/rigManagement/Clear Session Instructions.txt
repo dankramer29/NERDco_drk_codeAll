@@ -1,0 +1,14 @@
+How to clear a session:
+
+
+
+double click: cygwin terminal on desktop
+
+
+
+type: cd e:
+	(can do 'cd /c<TAB>/e' or 'cd /cygdrive/e')
+
+
+type: ./clearSessionDir
+	(can do './c<TAB>')

@@ -1,0 +1,4 @@
+rigHardware_buildWorkspace
+cursorTaskSplit_buildWorkspace %SNF replace this with decision? 
+decoderSplit_buildWorkspace
+postProcessing_buildWorkspace

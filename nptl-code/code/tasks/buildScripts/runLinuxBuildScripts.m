@@ -1,0 +1,5 @@
+rigHardware_buildWorkspace
+linuxTask_buildWorkspace
+decoderSplit_buildWorkspace
+postProcessing_buildWorkspace
+

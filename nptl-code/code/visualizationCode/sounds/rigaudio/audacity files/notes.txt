@@ -1,0 +1,2 @@
+04/18/09 - paul
+high pitch CEDC was created with an 8 semitone ste up from the normal CEDC
