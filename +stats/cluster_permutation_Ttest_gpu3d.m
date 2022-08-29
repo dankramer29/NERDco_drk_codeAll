@@ -11,6 +11,7 @@ function [ mnd1, mnd2, sd1, sd2, sigclust, rlab ] = cluster_permutation_Ttest_gp
 %     sd- the std of data1 and data2 
 %     est_p-the percentage of the distribution that is farther out than yours
 %     with the assumption that if it's less than 0.05, it's significant
+%TEST
 
 
 [varargin, plt]=util.argkeyval('plt', varargin, false); %option to plot the historgram
